@@ -1,0 +1,12 @@
+{
+  "app": {
+    "title": "Trophy Gold",
+    "subtitle": "Dark Fantasy RPG"
+  },
+  "landing": {
+    "new_game": "New Incursion",
+    "join_game": "Join Room",
+    "placeholder_user": "Your Name",
+    "placeholder_room": "Room Name"
+  }
+}

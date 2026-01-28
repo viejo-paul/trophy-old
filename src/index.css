@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Aplicamos el fondo oscuro y texto claro a toda la app por defecto */
+    @apply bg-trophy-dark text-trophy-text font-sans antialiased;
+  }
+
+  /* Títulos con fuente Serif (elegante) y color dorado */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-trophy-gold font-bold;
+  }
+}
