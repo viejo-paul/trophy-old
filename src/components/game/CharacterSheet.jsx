@@ -20,12 +20,12 @@ const CharacterSheet = ({ roomId, gameMode }) => {
     ruin: 1,
     gold: 0,
     debt: 0,
-    tokens: 0, // Contadores de exploración
+    tokens: 0, 
 
-    // Bio (Intercambiados según petición)
+    // Bio
     occupation: '',
-    background: '', // Ahora es pequeño (arriba)
-    drive: '',      // Ahora es grande (abajo)
+    background: '',
+    drive: '',
 
     // Habilidades
     skills: ['', '', '', ''], 
@@ -39,9 +39,9 @@ const CharacterSheet = ({ roomId, gameMode }) => {
 
     // Mochila y Hallazgos
     equipmentSlots: ['', '', '', '', '', ''],
-    foundEquipment: '', // Nuevo campo
+    foundEquipment: '', 
 
-    // Rituales (Empezamos con 3)
+    // Rituales
     ritualsDetailed: [
       { name: '', desc: '' },
       { name: '', desc: '' },
@@ -49,7 +49,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
     ],
 
     // Campaña
-    goldStash: 0, // Botín
+    goldStash: 0, 
     notes: ''
   });
 
@@ -63,7 +63,6 @@ const CharacterSheet = ({ roomId, gameMode }) => {
         setCharData(prev => ({
           ...prev,
           ...data,
-          // Aseguramos arrays mínimos si vienen datos viejos
           skills: data.skills || ['', '', '', ''],
           equipmentSlots: data.equipmentSlots || ['', '', '', '', '', ''],
           ritualsDetailed: data.ritualsDetailed || [
@@ -100,7 +99,6 @@ const CharacterSheet = ({ roomId, gameMode }) => {
     saveData({ ...charData, ritualsDetailed: newRituals });
   };
 
-  // Función para añadir nuevo ritual vacío
   const addRitualSlot = () => {
     const newRituals = [...charData.ritualsDetailed, { name: '', desc: '' }];
     saveData({ ...charData, ritualsDetailed: newRituals });
@@ -148,7 +146,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
         <div className="flex-1 space-y-1 pt-1">
           <input 
             type="text" 
-            className="w-full bg-transparent border-b border-transparent hover:border-gray-700 focus:border-trophy-gold font-serif text-xl text-trophy-gold font-bold focus:outline-none transition-colors"
+            className="w-full bg-transparent border-b border-transparent hover:border-gray-700 focus:border-trophy-gold font-serif text-xl text-trophy-gold font-bold focus:outline-none transition-colors placeholder:italic"
             value={charData.name}
             onChange={(e) => handleChange('name', e.target.value)}
             placeholder="Nombre del Personaje"
@@ -157,7 +155,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
             <span className="text-[10px] text-gray-500 uppercase font-bold">Jugador:</span>
             <input 
               type="text" 
-              className="flex-1 bg-transparent border-none text-[10px] text-gray-400 placeholder-gray-600 focus:text-white focus:outline-none"
+              className="flex-1 bg-transparent border-none text-[10px] text-gray-400 placeholder-gray-600 focus:text-white focus:outline-none placeholder:italic"
               value={charData.playerName}
               onChange={(e) => handleChange('playerName', e.target.value)}
               placeholder="Nombre del jugador/a..."
@@ -203,28 +201,26 @@ const CharacterSheet = ({ roomId, gameMode }) => {
           </div>
         </div>
 
-        {/* 2. BIO (Reordenado) */}
+        {/* 2. BIO */}
         <div className="space-y-3">
-          {/* Fila 1: Ocupación y Trasfondo */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Ocupación</label>
-              <input type="text" className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none text-xs"
+              <input type="text" className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none text-xs placeholder:italic"
                 value={charData.occupation} onChange={(e) => handleChange('occupation', e.target.value)} 
                 placeholder="Tu papel en la expedición..." />
             </div>
             <div>
               <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Trasfondo</label>
-              <input type="text" className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none text-xs"
+              <input type="text" className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none text-xs placeholder:italic"
                 value={charData.background} onChange={(e) => handleChange('background', e.target.value)} 
                 placeholder="La vida que abandonaste..." />
             </div>
           </div>
           
-          {/* Fila 2: Motivación (Grande) */}
           <div>
             <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Motivación</label>
-            <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none h-16 resize-none text-xs"
+            <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none h-16 resize-none text-xs placeholder:italic"
               value={charData.drive} onChange={(e) => handleChange('drive', e.target.value)} 
               placeholder="La razón por la que buscas tesoros..." />
           </div>
@@ -235,7 +231,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
           <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">Habilidades</label>
           <div className="grid grid-cols-2 gap-2">
             {charData.skills.map((skill, i) => (
-              <input key={i} type="text" className="bg-black/30 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-trophy-gold outline-none"
+              <input key={i} type="text" className="bg-black/30 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-trophy-gold outline-none placeholder:italic"
                 value={skill} onChange={(e) => handleArrayChange('skills', i, e.target.value)} placeholder={`Habilidad ${i+1}`} />
             ))}
           </div>
@@ -244,7 +240,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
         {/* 4. ESTADOS */}
         <div>
           <label className="text-[10px] text-trophy-red uppercase tracking-wider mb-1 flex items-center gap-1"><HeartPulse size={10}/> Estados</label>
-          <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-red outline-none h-16 resize-none text-xs"
+          <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-red outline-none h-16 resize-none text-xs placeholder:italic"
             value={charData.conditions} onChange={(e) => handleChange('conditions', e.target.value)} 
             placeholder={!charData.conditions ? "Condiciones, estados y cicatrices..." : ""} />
         </div>
@@ -256,14 +252,14 @@ const CharacterSheet = ({ roomId, gameMode }) => {
             <div className="space-y-1">
               <span className="text-[10px] text-gray-500 block text-center mb-1">ARMAS</span>
               {charData.weapons.map((w, i) => (
-                <input key={i} type="text" className="w-full bg-black/40 border border-gray-700 rounded px-2 py-1 text-xs focus:border-trophy-gold outline-none"
+                <input key={i} type="text" className="w-full bg-black/40 border border-gray-700 rounded px-2 py-1 text-xs focus:border-trophy-gold outline-none placeholder:italic"
                   value={w} onChange={(e) => handleArrayChange('weapons', i, e.target.value)} />
               ))}
             </div>
             <div className="space-y-1">
               <span className="text-[10px] text-gray-500 block text-center mb-1">ARMADURAS</span>
               {charData.armor.map((a, i) => (
-                <input key={i} type="text" className="w-full bg-black/40 border border-gray-700 rounded px-2 py-1 text-xs focus:border-gray-500 outline-none"
+                <input key={i} type="text" className="w-full bg-black/40 border border-gray-700 rounded px-2 py-1 text-xs focus:border-gray-500 outline-none placeholder:italic"
                   value={a} onChange={(e) => handleArrayChange('armor', i, e.target.value)} />
               ))}
             </div>
@@ -277,23 +273,20 @@ const CharacterSheet = ({ roomId, gameMode }) => {
             {charData.equipmentSlots.map((slot, i) => (
               <React.Fragment key={i}>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] w-3 ${i >= 3 ? 'text-red-500 font-bold' : 'text-gray-600'}`}>{i+1}</span>
-                  <input type="text" className={`flex-1 bg-black/30 border ${slot ? 'border-gray-600' : 'border-gray-800'} rounded px-2 py-1 text-xs focus:border-trophy-gold outline-none`}
+                  <span className="text-[10px] text-gray-600 w-3">{i+1}</span>
+                  <input type="text" className={`flex-1 bg-black/30 border ${slot ? 'border-gray-600' : 'border-gray-800'} rounded px-2 py-1 text-xs focus:border-trophy-gold outline-none placeholder:italic`}
                     value={slot} onChange={(e) => handleArrayChange('equipmentSlots', i, e.target.value)} />
                 </div>
-                {/* LÍNEA DIVISORIA TRAS EL SLOT 3 (Índice 2) */}
+                {/* LÍNEA DIVISORIA AMARILLA SIN TEXTO */}
                 {i === 2 && (
-                   <div className="my-2 border-t border-red-900/50 flex items-center justify-center">
-                      <span className="text-[9px] text-red-500 bg-trophy-panel px-2 -mt-2">Penalizadores de Carga</span>
-                   </div>
+                   <div className="my-2 border-t border-trophy-gold/50"></div>
                 )}
               </React.Fragment>
             ))}
           </div>
           
-          {/* Equipo Encontrado */}
           <label className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1"><Search size={10}/> Equipo Encontrado</label>
-          <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none h-16 resize-none text-xs"
+          <textarea className="w-full bg-black/30 border border-gray-700 rounded p-2 text-white focus:border-trophy-gold outline-none h-16 resize-none text-xs placeholder:italic"
             value={charData.foundEquipment} onChange={(e) => handleChange('foundEquipment', e.target.value)} 
             placeholder="Objetos extraños hallados en la incursión..." />
         </div>
@@ -309,9 +302,9 @@ const CharacterSheet = ({ roomId, gameMode }) => {
            <div className="space-y-3">
              {charData.ritualsDetailed.map((ritual, i) => (
                <div key={i} className="bg-black/20 p-2 rounded border border-gray-800 relative group">
-                 <input type="text" className="w-full bg-transparent border-b border-gray-700 text-trophy-gold font-bold mb-1 focus:outline-none placeholder-gray-700 text-xs"
+                 <input type="text" className="w-full bg-transparent border-b border-gray-700 text-trophy-gold font-bold mb-1 focus:outline-none placeholder-gray-700 text-xs placeholder:italic"
                    value={ritual.name} onChange={(e) => handleRitualChange(i, 'name', e.target.value)} placeholder="Nombre del Ritual" />
-                 <textarea className="w-full bg-transparent text-[10px] text-gray-400 resize-none h-8 focus:outline-none placeholder-gray-800"
+                 <textarea className="w-full bg-transparent text-[10px] text-gray-400 resize-none h-8 focus:outline-none placeholder-gray-800 placeholder:italic"
                    value={ritual.desc} onChange={(e) => handleRitualChange(i, 'desc', e.target.value)} placeholder="Efecto..." />
                </div>
              ))}
@@ -330,7 +323,7 @@ const CharacterSheet = ({ roomId, gameMode }) => {
            </div>
            <div>
               <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Notas</label>
-              <textarea className="w-full bg-black/50 border border-gray-700 rounded p-2 text-xs h-20 focus:border-trophy-gold outline-none resize-none"
+              <textarea className="w-full bg-black/50 border border-gray-700 rounded p-2 text-xs h-20 focus:border-trophy-gold outline-none resize-none placeholder:italic"
                  value={charData.notes} onChange={(e) => handleChange('notes', e.target.value)} />
            </div>
         </div>
