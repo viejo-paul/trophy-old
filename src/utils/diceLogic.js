@@ -5,15 +5,14 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   const lightRolls = [];
   const darkRolls = [];
   
-  const { enemyEndurance, combatants } = combatParams; // combatants aquí representa el nº de dados oscuros actuales
+  const { enemyEndurance, combatants } = combatParams;
 
   // 1. LANZAMIENTO
-  if (type === 'ruin') {
-    darkRolls.push(rollD6());
-  } else if (type === 'combat') {
-    if (lightCount > 0) lightRolls.push(rollD6()); // Mi punto débil
-    for (let i = 0; i < combatants; i++) darkRolls.push(rollD6()); // Ataque conjunto (Dados oscuros)
+  if (type === 'combat') {
+    if (lightCount > 0) lightRolls.push(rollD6()); 
+    for (let i = 0; i < combatants; i++) darkRolls.push(rollD6()); 
   } else {
+    // RIESGO, EXPLORACIÓN Y LIBRE usan los contadores normales
     for (let i = 0; i < lightCount; i++) lightRolls.push(rollD6());
     for (let i = 0; i < darkCount; i++) darkRolls.push(rollD6());
   }
@@ -23,39 +22,43 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   const highest = Math.max(...allRolls, 0);
   const maxLight = Math.max(...lightRolls, 0);
   const maxDark = Math.max(...darkRolls, 0);
-  const isDarkHighest = (type !== 'combat') && (darkRolls.length > 0) && (maxDark >= maxLight) && (maxDark === highest);
+  // Ruina solo aplica en Riesgo/Exploración/Combate
+  const isDarkHighest = (type !== 'combat' && type !== 'free') && (darkRolls.length > 0) && (maxDark >= maxLight) && (maxDark === highest);
 
-  // 3. RESULTADOS Y TEXTOS
-  let outcome = 'failure';
+  // 3. RESULTADOS
+  let outcome = 'info';
   let outcomeTitle = '';
   let outcomeDesc = '';
   
+  // Datos combate
   let attackTotal = 0;
   let isVictory = false;
 
   switch (type) {
+    case 'free': // --- TIRADA LIBRE (NUEVO) ---
+      outcome = 'info';
+      outcomeTitle = 'Tirada Libre';
+      outcomeDesc = 'Sin reglas automáticas. Interpreta los dados según la situación.';
+      break;
+
     case 'combat':
-      // Suma de dados oscuros
       attackTotal = darkRolls.reduce((a, b) => a + b, 0);
       isVictory = attackTotal >= enemyEndurance;
-      
-      // Chequeo de Ruina (Punto Débil vs Dados Oscuros)
       const myWeakPoint = lightRolls[0];
       const matchFound = darkRolls.includes(myWeakPoint);
 
       if (isVictory) {
         outcome = 'success';
         outcomeTitle = `¡ENEMIGO ABATIDO! (Suma: ${attackTotal})`;
-        outcomeDesc = `Vuestro ataque supera el Aguante (${enemyEndurance}). La bestia ha caído.`;
+        outcomeDesc = `Vuestro ataque supera el Aguante (${enemyEndurance}).`;
       } else {
-        // CORRECCIÓN: Si no superas el aguante, NO haces daño.
-        outcome = 'partial'; // Usamos 'partial' para que salga en amarillo (aviso)
+        outcome = 'partial';
         outcomeTitle = `Ataque Insuficiente (Suma: ${attackTotal})`;
-        outcomeDesc = `No superáis el Aguante (${enemyEndurance}). Si queréis seguir luchando, AÑADID 1 DADO OSCURO a la reserva y tirad de nuevo.`;
+        outcomeDesc = `No superáis el Aguante (${enemyEndurance}). AÑADID 1 DADO DE ATAQUE si continuáis.`;
       }
       
       if (matchFound) {
-        outcomeDesc += ` | ¡CUIDADO! Tu Punto Débil (${myWeakPoint}) coincide con el ataque. Recibes 1 de Ruina.`;
+        outcomeDesc += ` | ¡RUINA! Tu Punto Débil (${myWeakPoint}) coincide con el ataque.`;
       }
       break;
 
@@ -66,7 +69,7 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
         outcomeDesc = 'Describe cómo o pídele al DJ que lo describa él.';
       } else if (highest >= 4) {
         outcome = 'partial';
-        outcomeTitle = 'Logras lo que quieres, pero se produce complicación.';
+        outcomeTitle = 'Logras lo que quieres con coste.';
         outcomeDesc = 'El DJ determina la complicación.';
       } else {
         outcome = 'failure';
@@ -90,15 +93,9 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
         outcomeDesc = '';
       } else {
         outcome = 'critical_failure'; 
-        outcomeTitle = 'Pierdes TODOS los contadores y encuentras algo terrible.';
-        outcomeDesc = 'Solo tú pierdes los contadores.';
+        outcomeTitle = 'Pierdes TODOS los contadores.';
+        outcomeDesc = 'Encuentras algo terrible.';
       }
-      break;
-
-    case 'ruin':
-      outcome = 'info';
-      outcomeTitle = `Resultado: ${highest}`;
-      outcomeDesc = 'Mayor que tu Ruina: Te salvas. Menor o igual: Ruina +1.';
       break;
 
     default:
@@ -114,7 +111,7 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
     outcomeTitle,
     outcomeDesc,
     isDarkHighest,
-    attackTotal, // Dato extra para mostrar la suma
+    attackTotal,
     enemyEndurance,
     isVictory
   };

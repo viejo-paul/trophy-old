@@ -5,17 +5,18 @@ import { subscribeToRoom, joinRoom, subscribeToMessages } from '../services/room
 import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
-// Iconos
-import { MessageSquare, Eye, Scroll, User, Sword, Skull, Compass, AlertTriangle } from 'lucide-react'; 
+// Iconos (Incluidos los Dados 1-6)
+import { 
+  MessageSquare, Eye, User, Sword, Skull, Compass, AlertTriangle, Dices,
+  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 
+} from 'lucide-react'; 
 
 const GameScreen = () => {
   const { roomId } = useParams();
   const { user, login } = useGame();
-  
   const [roomData, setRoomData] = useState(null);
   const [messages, setMessages] = useState([]);
   const [joinName, setJoinName] = useState('');
-  
   const [mobileTab, setMobileTab] = useState('visual'); 
   const chatEndRef = useRef(null);
 
@@ -31,9 +32,23 @@ const GameScreen = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- RENDERIZADO DE MENSAJES v2.1.3 ---
+  // --- HELPER: RENDERIZAR CARA DEL DADO (PUNTOS) ---
+  const renderDieFace = (num) => {
+    const props = { size: 20, strokeWidth: 2.5 }; // Tamaño y grosor de los puntos
+    switch (num) {
+      case 1: return <Dice1 {...props} />;
+      case 2: return <Dice2 {...props} />;
+      case 3: return <Dice3 {...props} />;
+      case 4: return <Dice4 {...props} />;
+      case 5: return <Dice5 {...props} />;
+      case 6: return <Dice6 {...props} />;
+      default: return <Dice1 {...props} />;
+    }
+  };
+
+  // --- RENDERIZADO DE MENSAJES ---
   const renderMessage = (msg) => {
-    if (['risk', 'combat', 'hunt', 'ruin', 'roll'].includes(msg.type)) {
+    if (['risk', 'combat', 'hunt', 'free', 'roll'].includes(msg.type)) { // Incluido 'free'
       
       let borderColor = 'border-gray-700';
       let icon = <AlertTriangle size={14} className="text-trophy-gold" />;
@@ -42,23 +57,24 @@ const GameScreen = () => {
       if (msg.type === 'combat') {
         borderColor = 'border-red-900';
         icon = <Sword size={14} className="text-red-500" />;
-        title = "Ataque Grupal"; // Título actualizado
+        title = "Ataque Grupal";
       } else if (msg.type === 'hunt') {
         borderColor = 'border-green-800';
         icon = <Compass size={14} className="text-green-500" />;
         title = "Exploración";
-      } else if (msg.type === 'ruin') {
-        borderColor = 'border-gray-600';
-        icon = <Skull size={14} className="text-gray-400" />;
-        title = "Prueba de Ruina";
+      } else if (msg.type === 'free') {
+        borderColor = 'border-gray-500';
+        icon = <Dices size={14} className="text-white" />;
+        title = "Tirada Libre";
       }
 
       // Colores de Texto
       let outcomeColor = 'text-gray-400';
-      if (msg.outcome === 'success') outcomeColor = 'text-green-400'; // Victoria
-      if (msg.outcome === 'partial') outcomeColor = 'text-yellow-400'; // Ataque insuficiente (Combate) o Coste (Riesgo)
-      // En combate, siempre mostramos el daño en un color destacado
-      if (msg.type === 'combat') outcomeColor = 'text-red-300'; 
+      if (msg.outcome === 'success') outcomeColor = 'text-green-400';
+      if (msg.outcome === 'partial') outcomeColor = 'text-yellow-400';
+      if (msg.outcome === 'critical_failure') outcomeColor = 'text-red-600';
+      if (msg.type === 'combat') outcomeColor = 'text-red-300';
+      if (msg.type === 'free') outcomeColor = 'text-gray-300';
 
       return (
         <div className={`bg-black/40 border ${borderColor} rounded p-2 mb-2`}>
@@ -70,28 +86,28 @@ const GameScreen = () => {
             </div>
           </div>
           
-          {/* Dados */}
+          {/* Dados (PUNTOS Y COLORES NUEVOS) */}
           <div className="flex flex-col items-center mb-2">
-             {/* Dados Claros (Punto Débil) */}
+             {/* Dados Claros */}
              {msg.lightRolls && msg.lightRolls.length > 0 && (
                <div className="flex items-center gap-2 mb-1">
-                 <span className="text-[9px] text-gray-500 uppercase">Punto Débil:</span>
+                 {msg.type === 'combat' && <span className="text-[9px] text-gray-500 uppercase">Punto Débil:</span>}
                  {msg.lightRolls.map((r, i) => (
-                    <span key={`l-${i}`} className="w-6 h-6 flex items-center justify-center bg-gray-200 text-black font-bold rounded text-xs">
-                      {r}
+                    <span key={`l-${i}`} className="w-8 h-8 flex items-center justify-center bg-gray-200 text-black rounded shadow-sm">
+                      {renderDieFace(r)}
                     </span>
                  ))}
                </div>
              )}
 
-             {/* Dados Oscuros (Ataque) */}
+             {/* Dados Oscuros (AHORA NEGROS CON BORDE BLANCO) */}
              {msg.darkRolls && msg.darkRolls.length > 0 && (
                <div className="flex items-center gap-2">
                  {msg.type === 'combat' && <span className="text-[9px] text-red-400 uppercase">Ataque:</span>}
                  <div className="flex flex-wrap gap-1">
                     {msg.darkRolls.map((r, i) => (
-                      <span key={`d-${i}`} className="w-8 h-8 flex items-center justify-center bg-trophy-red text-black border border-red-900 font-bold rounded shadow-sm text-sm">
-                        {r}
+                      <span key={`d-${i}`} className="w-8 h-8 flex items-center justify-center bg-black text-white border border-gray-300 rounded shadow-sm">
+                        {renderDieFace(r)}
                       </span>
                     ))}
                  </div>
@@ -111,8 +127,7 @@ const GameScreen = () => {
                </div>
              )}
              
-             {/* Advertencia de Ruina (General o Combate) */}
-             {msg.isDarkHighest && msg.type !== 'combat' && (
+             {msg.isDarkHighest && msg.type !== 'combat' && msg.type !== 'free' && (
                 <div className="mt-2 flex items-center justify-center gap-1 text-trophy-red font-bold animate-pulse bg-red-900/20 p-1 rounded border border-red-900/30">
                   <Skull size={12} /> ¡POSIBLE RUINA!
                 </div>
@@ -130,27 +145,15 @@ const GameScreen = () => {
     );
   };
 
-  // --- RESTO DEL COMPONENTE IGUAL QUE ANTES ---
   if (!user) {
+    // LOGIN COMPONENT (Sin cambios)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-trophy-dark text-trophy-text p-4">
         <div className="bg-trophy-panel p-8 rounded-lg shadow-2xl border border-gray-800 max-w-md w-full text-center">
           <h2 className="text-2xl font-serif text-trophy-gold mb-4">Identifícate</h2>
           <p className="mb-6 text-gray-400">Estás entrando en la sala <strong>{roomId}</strong>.</p>
-          <input
-            type="text"
-            placeholder="Tu nombre..."
-            className="w-full bg-black/50 border border-gray-700 rounded p-3 text-white mb-4 focus:border-trophy-gold outline-none"
-            value={joinName}
-            onChange={(e) => setJoinName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && joinName.trim() && login(joinName)}
-          />
-          <button
-            onClick={() => joinName.trim() && login(joinName)}
-            className="w-full py-3 bg-trophy-red hover:bg-red-800 text-white font-bold rounded transition-colors"
-          >
-            Entrar a la Incursión
-          </button>
+          <input type="text" placeholder="Tu nombre..." className="w-full bg-black/50 border border-gray-700 rounded p-3 text-white mb-4 focus:border-trophy-gold outline-none" value={joinName} onChange={(e) => setJoinName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && joinName.trim() && login(joinName)} />
+          <button onClick={() => joinName.trim() && login(joinName)} className="w-full py-3 bg-trophy-red hover:bg-red-800 text-white font-bold rounded transition-colors">Entrar a la Incursión</button>
         </div>
       </div>
     );

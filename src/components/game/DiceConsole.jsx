@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { performTrophyRoll } from '../../utils/diceLogic';
 import { sendMessage } from '../../services/roomService';
 import { useGame } from '../../context/GameContext';
-import { Sword, Compass, Skull, AlertTriangle, Dices } from 'lucide-react'; // Icono Dices nuevo
+import { Sword, Compass, Dices, AlertTriangle } from 'lucide-react'; // Iconos
 
 const DiceConsole = ({ roomId }) => {
   const { user } = useGame();
@@ -14,10 +14,9 @@ const DiceConsole = ({ roomId }) => {
   const [isRolling, setIsRolling] = useState(false);
 
   // Estados Combate
-  const [attackDice, setAttackDice] = useState(1); // Renombrado de combatants a attackDice
+  const [attackDice, setAttackDice] = useState(1);
   const [enemyEndurance, setEnemyEndurance] = useState(10);
 
-  // Sonidos
   const playSound = (type) => {
     const audio = new Audio(type === 'success' ? '/assets/sounds/success.mp3' : '/assets/sounds/dice-hit.mp3');
     audio.volume = 0.5;
@@ -30,7 +29,7 @@ const DiceConsole = ({ roomId }) => {
 
     const combatParams = {
       enemyEndurance: parseInt(enemyEndurance),
-      combatants: parseInt(attackDice) // Pasamos el nº de dados oscuros
+      combatants: parseInt(attackDice)
     };
 
     const result = performTrophyRoll(rollType, lightCount, darkCount, combatParams);
@@ -42,7 +41,6 @@ const DiceConsole = ({ roomId }) => {
 
     await sendMessage(roomId, messageData);
     
-    // Solo suena victoria si realmente matamos al monstruo
     if (result.outcome === 'success') {
       setTimeout(() => playSound('success'), 500);
     }
@@ -72,7 +70,8 @@ const DiceConsole = ({ roomId }) => {
         <TabButton type="risk" icon={AlertTriangle} label="Riesgo" color="trophy-gold" />
         <TabButton type="combat" icon={Sword} label="Combate" color="red-500" />
         <TabButton type="hunt" icon={Compass} label="Exploración" color="green-500" />
-        <TabButton type="ruin" icon={Skull} label="Ruina" color="gray-400" />
+        {/* Cambiado de Ruina a Libre */}
+        <TabButton type="free" icon={Dices} label="Libre" color="white" />
       </div>
 
       {/* 2. CONTROLES */}
@@ -81,23 +80,16 @@ const DiceConsole = ({ roomId }) => {
         {rollType === 'combat' ? (
           <div className="space-y-3">
              <div className="flex gap-4">
-                {/* Dados de Ataque (Oscuros) */}
                 <div className="flex-1">
-                   <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center gap-1 mb-1">
-                     <Dices size={12}/> Dados de Ataque
-                   </label>
+                   <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center gap-1 mb-1"><Dices size={12}/> Dados de Ataque</label>
                    <div className="flex items-center w-full bg-gray-900 rounded border border-gray-700">
                       <button onClick={() => setAttackDice(Math.max(1, attackDice - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
                       <span className="flex-1 text-center font-bold text-white">{attackDice}</span>
                       <button onClick={() => setAttackDice(Math.min(15, attackDice + 1))} className="p-2 text-gray-400 hover:text-white">+</button>
                    </div>
                 </div>
-
-                {/* Aguante Enemigo */}
                 <div className="flex-1">
-                   <label className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1 mb-1">
-                     <Sword size={12}/> Aguante
-                   </label>
+                   <label className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1 mb-1"><Sword size={12}/> Aguante</label>
                    <div className="flex items-center w-full bg-red-900/20 rounded border border-red-900/50">
                       <button onClick={() => setEnemyEndurance(Math.max(1, enemyEndurance - 1))} className="p-2 text-red-400 hover:text-white">-</button>
                       <span className="flex-1 text-center font-bold text-red-100">{enemyEndurance}</span>
@@ -105,19 +97,10 @@ const DiceConsole = ({ roomId }) => {
                    </div>
                 </div>
              </div>
-             <p className="text-[10px] text-gray-500 italic text-center">
-               Se lanzará 1 dado claro (tu punto débil) y {attackDice} oscuros (suma vs aguante).
-             </p>
           </div>
 
-        ) : rollType === 'ruin' ? (
-          /* MODO RUINA */
-          <div className="text-center text-gray-400 text-xs">
-            <p className="mb-2">Tira 1 dado oscuro.</p>
-            <p>Si sacas MÁS que tu Ruina actual, te salvas.</p>
-          </div>
         ) : (
-          /* MODO RIESGO / EXPLORACIÓN */
+          /* MODO RIESGO / EXPLORACIÓN / LIBRE (Comparten interfaz) */
           <div className="flex justify-between gap-4">
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-text mb-1 uppercase tracking-wider">Claros</span>
@@ -129,10 +112,11 @@ const DiceConsole = ({ roomId }) => {
             </div>
 
             <div className="flex flex-col items-center w-1/2">
-              <span className="text-xs text-trophy-red mb-1 uppercase tracking-wider">Oscuros</span>
-              <div className="flex items-center w-full bg-gray-900 rounded border border-trophy-red/50">
+              {/* En modo libre, el dado oscuro es opcional/neutral */}
+              <span className={`text-xs mb-1 uppercase tracking-wider ${rollType === 'free' ? 'text-gray-400' : 'text-trophy-red'}`}>Oscuros</span>
+              <div className={`flex items-center w-full bg-gray-900 rounded border ${rollType === 'free' ? 'border-gray-500' : 'border-trophy-red/50'}`}>
                 <button onClick={() => setDarkCount(Math.max(0, darkCount - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
-                <span className="flex-1 text-center font-bold text-trophy-red">{darkCount}</span>
+                <span className={`flex-1 text-center font-bold ${rollType === 'free' ? 'text-gray-300' : 'text-trophy-red'}`}>{darkCount}</span>
                 <button onClick={() => setDarkCount(Math.min(6, darkCount + 1))} className="p-2 text-gray-400 hover:text-white">+</button>
               </div>
             </div>
@@ -142,18 +126,18 @@ const DiceConsole = ({ roomId }) => {
         {/* 3. BOTÓN */}
         <button
           onClick={handleRoll}
-          disabled={isRolling}
+          disabled={isRolling || (rollType !== 'combat' && lightCount + darkCount === 0)}
           className={`w-full py-3 font-serif font-bold text-lg rounded shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
             rollType === 'combat' ? 'bg-trophy-red text-white hover:bg-red-800' :
             rollType === 'hunt' ? 'bg-green-700 text-white hover:bg-green-600' :
-            rollType === 'ruin' ? 'bg-gray-700 text-white hover:bg-gray-600' :
+            rollType === 'free' ? 'bg-gray-200 text-black hover:bg-white' : // Botón blanco/gris para libre
             'bg-trophy-gold text-black hover:bg-yellow-600'
           }`}
         >
           {isRolling ? '...' : 
            rollType === 'combat' ? 'ATAQUE GRUPAL' : 
            rollType === 'hunt' ? 'EXPLORAR' : 
-           rollType === 'ruin' ? 'RESISTIR RUINA' : 'ARRIESGAR'}
+           rollType === 'free' ? 'TIRADA LIBRE' : 'ARRIESGAR'}
         </button>
 
       </div>
