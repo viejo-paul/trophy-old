@@ -42,7 +42,7 @@ const GameScreen = () => {
       if (msg.type === 'combat') {
         borderColor = 'border-red-900';
         icon = <Sword size={14} className="text-red-500" />;
-        title = "Combate";
+        title = "Ataque Grupal"; // Título actualizado
       } else if (msg.type === 'hunt') {
         borderColor = 'border-green-800';
         icon = <Compass size={14} className="text-green-500" />;
@@ -53,12 +53,14 @@ const GameScreen = () => {
         title = "Prueba de Ruina";
       }
 
-      // Colores del Texto de Resultado
-      let outcomeColor = 'text-gray-400'; // Fallo normal
+      // Colores de Texto
+      let outcomeColor = 'text-gray-400';
       if (msg.outcome === 'success') outcomeColor = 'text-green-400';
       if (msg.outcome === 'partial') outcomeColor = 'text-yellow-400';
-      if (msg.outcome === 'critical_failure') outcomeColor = 'text-red-600'; // Pifia (Exploración 1)
+      if (msg.outcome === 'critical_failure') outcomeColor = 'text-red-600';
       if (msg.type === 'ruin') outcomeColor = 'text-white';
+      // En combate, siempre mostramos el daño en un color destacado
+      if (msg.type === 'combat') outcomeColor = 'text-red-300'; 
 
       return (
         <div className={`bg-black/40 border ${borderColor} rounded p-2 mb-2`}>
@@ -71,41 +73,48 @@ const GameScreen = () => {
           </div>
           
           {/* Dados */}
-          <div className="flex flex-wrap gap-1 mb-2 justify-center">
-            {msg.lightRolls && msg.lightRolls.map((r, i) => (
-              <span key={`l-${i}`} className={`w-8 h-8 flex items-center justify-center font-bold rounded shadow-sm text-lg ${
-                msg.type === 'combat' && r >= msg.targetNumber ? 'bg-green-600 text-white' : 'bg-gray-200 text-black'
-              }`}>
-                {r}
-              </span>
-            ))}
-            {msg.darkRolls && msg.darkRolls.map((r, i) => (
-              <span key={`d-${i}`} className={`w-8 h-8 flex items-center justify-center font-bold rounded shadow-sm border text-lg ${
-                msg.type === 'combat' && r >= msg.targetNumber ? 'bg-green-900 text-green-200 border-green-500' : 'bg-trophy-red text-black border-red-900'
-              }`}>
-                {r}
-              </span>
-            ))}
+          <div className="flex flex-col items-center mb-2">
+             {/* Dados Claros (Punto Débil) */}
+             {msg.lightRolls && msg.lightRolls.length > 0 && (
+               <div className="flex items-center gap-2 mb-1">
+                 <span className="text-[9px] text-gray-500 uppercase">Punto Débil:</span>
+                 {msg.lightRolls.map((r, i) => (
+                    <span key={`l-${i}`} className="w-6 h-6 flex items-center justify-center bg-gray-200 text-black font-bold rounded text-xs">
+                      {r}
+                    </span>
+                 ))}
+               </div>
+             )}
+
+             {/* Dados Oscuros (Ataque) */}
+             {msg.darkRolls && msg.darkRolls.length > 0 && (
+               <div className="flex items-center gap-2">
+                 {msg.type === 'combat' && <span className="text-[9px] text-red-400 uppercase">Ataque:</span>}
+                 <div className="flex flex-wrap gap-1">
+                    {msg.darkRolls.map((r, i) => (
+                      <span key={`d-${i}`} className="w-8 h-8 flex items-center justify-center bg-trophy-red text-black border border-red-900 font-bold rounded shadow-sm text-sm">
+                        {r}
+                      </span>
+                    ))}
+                 </div>
+               </div>
+             )}
           </div>
 
-          {/* Resultado Detallado (Aquí está el cambio clave) */}
+          {/* Resultado Detallado */}
           <div className="text-xs text-center px-1">
              <div className={`font-bold uppercase tracking-wider mb-1 ${outcomeColor}`}>
                {msg.outcomeTitle || 'Resultado...'}
              </div>
              
-             {/* Descripción en cursiva pequeña */}
              {msg.outcomeDesc && (
-               <div className="text-[10px] text-gray-400 italic leading-tight mb-1">
+               <div className="text-[10px] text-gray-400 italic leading-tight">
                  {msg.outcomeDesc}
                </div>
              )}
              
-             {msg.type === 'combat' && (
-               <div className="text-[10px] text-gray-500">vs Aguante {msg.targetNumber}</div>
-             )}
-             
-             {msg.isDarkHighest && (
+             {/* Advertencia de Ruina (General o Combate) */}
+             {msg.isDarkHighest && msg.type !== 'combat' && (
                 <div className="mt-2 flex items-center justify-center gap-1 text-trophy-red font-bold animate-pulse bg-red-900/20 p-1 rounded border border-red-900/30">
                   <Skull size={12} /> ¡POSIBLE RUINA!
                 </div>

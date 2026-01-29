@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { performTrophyRoll } from '../../utils/diceLogic';
 import { sendMessage } from '../../services/roomService';
 import { useGame } from '../../context/GameContext';
-import { Sword, Compass, Skull, AlertTriangle } from 'lucide-react'; // Cambié Footprints por Compass
+import { Sword, Compass, Skull, AlertTriangle, Users } from 'lucide-react';
 
 const DiceConsole = ({ roomId }) => {
   const { user } = useGame();
   
   // ESTADOS
-  const [rollType, setRollType] = useState('risk'); // 'risk', 'combat', 'hunt', 'ruin'
+  const [rollType, setRollType] = useState('risk');
   const [lightCount, setLightCount] = useState(1);
   const [darkCount, setDarkCount] = useState(0);
-  const [targetNumber, setTargetNumber] = useState(6);
   const [isRolling, setIsRolling] = useState(false);
+
+  // Estados exclusivos de Combate
+  const [combatants, setCombatants] = useState(1);
+  const [enemyEndurance, setEnemyEndurance] = useState(10);
 
   // Sonidos
   const playSound = (type) => {
@@ -25,17 +28,23 @@ const DiceConsole = ({ roomId }) => {
     setIsRolling(true);
     playSound('roll');
 
-    const result = performTrophyRoll(rollType, lightCount, darkCount, targetNumber);
+    // Preparamos parámetros
+    const combatParams = {
+      enemyEndurance: parseInt(enemyEndurance),
+      combatants: parseInt(combatants)
+    };
+
+    // Si es combate: 1 dado claro (mío) y 'combatants' dados oscuros (grupo)
+    const result = performTrophyRoll(rollType, lightCount, darkCount, combatParams);
 
     const messageData = {
-      // OJO: Aquí enviamos 'rollType' separado para no machacar el tipo principal si quisieramos
-      // Pero para mantener compatibilidad con lo que hicimos antes, dejamos que result sobreescriba.
       user: user.name,
       ...result 
     };
 
     await sendMessage(roomId, messageData);
     
+    // En combate, éxito es victoria total. En riesgo, es un 6.
     if (result.outcome === 'success') {
       setTimeout(() => playSound('success'), 500);
     }
@@ -60,7 +69,7 @@ const DiceConsole = ({ roomId }) => {
   return (
     <div className="flex flex-col bg-trophy-panel border-t border-gray-800">
       
-      {/* 1. SELECTOR DE TIPO (PESTAÑAS) */}
+      {/* 1. PESTAÑAS */}
       <div className="flex border-b border-gray-800">
         <TabButton type="risk" icon={AlertTriangle} label="Riesgo" color="trophy-gold" />
         <TabButton type="combat" icon={Sword} label="Combate" color="red-500" />
@@ -71,14 +80,48 @@ const DiceConsole = ({ roomId }) => {
       {/* 2. CONTROLES */}
       <div className="p-4 space-y-4">
         
-        {rollType === 'ruin' ? (
+        {/* --- MODO COMBATE --- */}
+        {rollType === 'combat' ? (
+          <div className="space-y-3">
+             <div className="flex gap-4">
+                {/* Número de Combatientes */}
+                <div className="flex-1">
+                   <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center gap-1 mb-1">
+                     <Users size={12}/> Combatientes
+                   </label>
+                   <div className="flex items-center w-full bg-gray-900 rounded border border-gray-700">
+                      <button onClick={() => setCombatants(Math.max(1, combatants - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
+                      <span className="flex-1 text-center font-bold text-white">{combatants}</span>
+                      <button onClick={() => setCombatants(Math.min(10, combatants + 1))} className="p-2 text-gray-400 hover:text-white">+</button>
+                   </div>
+                </div>
+
+                {/* Aguante Enemigo */}
+                <div className="flex-1">
+                   <label className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1 mb-1">
+                     <Sword size={12}/> Aguante
+                   </label>
+                   <div className="flex items-center w-full bg-red-900/20 rounded border border-red-900/50">
+                      <button onClick={() => setEnemyEndurance(Math.max(1, enemyEndurance - 1))} className="p-2 text-red-400 hover:text-white">-</button>
+                      <span className="flex-1 text-center font-bold text-red-100">{enemyEndurance}</span>
+                      <button onClick={() => setEnemyEndurance(Math.min(50, enemyEndurance + 1))} className="p-2 text-red-400 hover:text-white">+</button>
+                   </div>
+                </div>
+             </div>
+             <p className="text-[10px] text-gray-500 italic text-center">
+               Se tirará 1 dado claro (tu punto débil) y {combatants} oscuros (ataque grupal).
+             </p>
+          </div>
+
+        ) : rollType === 'ruin' ? (
+          /* --- MODO RUINA --- */
           <div className="text-center text-gray-400 text-xs">
             <p className="mb-2">Tira 1 dado oscuro.</p>
             <p>Si sacas MÁS que tu Ruina actual, te salvas.</p>
           </div>
         ) : (
+          /* --- MODO RIESGO / EXPLORACIÓN --- */
           <div className="flex justify-between gap-4">
-            {/* Dados Claros */}
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-text mb-1 uppercase tracking-wider">Claros</span>
               <div className="flex items-center w-full bg-gray-900 rounded border border-gray-700">
@@ -88,7 +131,6 @@ const DiceConsole = ({ roomId }) => {
               </div>
             </div>
 
-            {/* Dados Oscuros */}
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-red mb-1 uppercase tracking-wider">Oscuros</span>
               <div className="flex items-center w-full bg-gray-900 rounded border border-trophy-red/50">
@@ -100,23 +142,10 @@ const DiceConsole = ({ roomId }) => {
           </div>
         )}
 
-        {/* INPUT COMBATE */}
-        {rollType === 'combat' && (
-          <div className="flex items-center justify-between bg-red-900/20 p-2 rounded border border-red-900/50">
-            <span className="text-xs text-red-400 uppercase font-bold">Aguante del Enemigo:</span>
-            <input 
-              type="number" 
-              value={targetNumber}
-              onChange={(e) => setTargetNumber(parseInt(e.target.value) || 6)}
-              className="w-12 bg-black border border-red-900 rounded text-center text-white font-bold"
-            />
-          </div>
-        )}
-
         {/* 3. BOTÓN DE LANZAR */}
         <button
           onClick={handleRoll}
-          disabled={isRolling || (rollType !== 'ruin' && lightCount + darkCount === 0)}
+          disabled={isRolling}
           className={`w-full py-3 font-serif font-bold text-lg rounded shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
             rollType === 'combat' ? 'bg-trophy-red text-white hover:bg-red-800' :
             rollType === 'hunt' ? 'bg-green-700 text-white hover:bg-green-600' :
@@ -125,7 +154,7 @@ const DiceConsole = ({ roomId }) => {
           }`}
         >
           {isRolling ? '...' : 
-           rollType === 'combat' ? 'ATACAR' : 
+           rollType === 'combat' ? 'ATAQUE GRUPAL' : 
            rollType === 'hunt' ? 'EXPLORAR' : 
            rollType === 'ruin' ? 'RESISTIR RUINA' : 'ARRIESGAR'}
         </button>
