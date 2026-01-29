@@ -5,6 +5,7 @@ import { subscribeToRoom, joinRoom, subscribeToMessages } from '../services/room
 import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
+import DiceLayer3D from '../components/game/DiceLayer3D'; // Importación correcta
 import RulesHelp from '../components/game/RulesHelp'; // Asegúrate de que este archivo existe
 // NOTA: He quitado HelpCircle de aquí para evitar errores
 import { 
@@ -169,9 +170,22 @@ const GameScreen = () => {
         <div className="h-16 md:hidden"></div>
       </div>
 
-      {/* 2. VISUAL */}
-      <div className={`absolute inset-0 z-0 bg-black flex flex-col md:relative md:flex-1 md:border-r md:border-gray-800 ${mobileTab === 'visual' ? 'flex' : 'hidden'}`}>
-        <VisualBoard roomId={roomId} roomData={roomData} />
+      {/* 2. VISUAL (COLUMNA CENTRAL) */}
+      <div className={`
+        absolute inset-0 z-0 bg-black flex flex-col
+        md:relative md:flex-1 md:border-r md:border-gray-800
+        ${mobileTab === 'visual' ? 'flex' : 'hidden'}
+      `}>
+        {/* Wrapper relativo para contener los dados en Desktop */}
+        <div className="relative w-full h-full">
+            <VisualBoard roomId={roomId} roomData={roomData} />
+
+            {/* DADOS 3D (SOLO ESCRITORIO) - Viven dentro de esta columna */}
+            <div className="hidden md:block">
+              <DiceLayer3D messages={messages} />
+            </div>
+        </div>
+
         <div className="h-16 md:hidden bg-black"></div>
       </div>
 
@@ -203,6 +217,11 @@ const GameScreen = () => {
 
       {/* 6. MODAL DE REGLAS */}
       <RulesHelp isOpen={showRules} onClose={() => setShowRules(false)} />
+
+      {/* --- DADOS 3D (MÓVIL - VISIBLE EN CUALQUIER PESTAÑA) --- */}
+      <div className="md:hidden">
+        <DiceLayer3D messages={messages} />
+      </div>
 
     </div>
   );
