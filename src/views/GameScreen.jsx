@@ -9,6 +9,8 @@ import VisualBoard from '../components/game/VisualBoard';
 import { 
   MessageSquare, Eye, User, Sword, Skull, Compass, AlertTriangle, Dices
 } from 'lucide-react'; 
+import RulesHelp from '../components/game/RulesHelp';
+import { ..., HelpCircle } from 'lucide-react'; // Añade HelpCircle a la lista de iconos
 
 const GameScreen = () => {
   const { roomId } = useParams();
@@ -17,6 +19,7 @@ const GameScreen = () => {
   const [messages, setMessages] = useState([]);
   const [joinName, setJoinName] = useState('');
   const [mobileTab, setMobileTab] = useState('visual'); 
+  const [showRules, setShowRules] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -206,7 +209,19 @@ const GameScreen = () => {
         <button onClick={() => setMobileTab('visual')} className={`flex flex-col items-center gap-1 ${mobileTab === 'visual' ? 'text-trophy-gold' : 'text-gray-500'}`}><Eye size={20} /><span className="text-[10px] font-bold uppercase">Visual</span></button>
         <button onClick={() => setMobileTab('sheet')} className={`flex flex-col items-center gap-1 ${mobileTab === 'sheet' ? 'text-trophy-gold' : 'text-gray-500'}`}><User size={20} /><span className="text-[10px] font-bold uppercase">Ficha</span></button>
       </div>
-    </div>
+      {/* --- BOTÓN DE AYUDA FLOTANTE --- */}
+      <button 
+        onClick={() => setShowRules(true)}
+        className="fixed top-4 right-4 z-50 bg-black/50 hover:bg-trophy-gold hover:text-black text-trophy-gold border border-trophy-gold rounded-full p-2 transition-all shadow-xl"
+        title="Reglas"
+      >
+        <HelpCircle size={24} />
+      </button>
+
+      {/* --- MODAL DE REGLAS --- */}
+      <RulesHelp isOpen={showRules} onClose={() => setShowRules(false)} />
+
+    </div> // Cierre del div principal
   );
 };
 
