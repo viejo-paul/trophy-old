@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { performTrophyRoll } from '../../utils/diceLogic';
 import { sendMessage } from '../../services/roomService';
 import { useGame } from '../../context/GameContext';
-import { Sword, Compass, Skull, AlertTriangle, Users } from 'lucide-react';
+import { Sword, Compass, Skull, AlertTriangle, Dices } from 'lucide-react'; // Icono Dices nuevo
 
 const DiceConsole = ({ roomId }) => {
   const { user } = useGame();
@@ -13,8 +13,8 @@ const DiceConsole = ({ roomId }) => {
   const [darkCount, setDarkCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
 
-  // Estados exclusivos de Combate
-  const [combatants, setCombatants] = useState(1);
+  // Estados Combate
+  const [attackDice, setAttackDice] = useState(1); // Renombrado de combatants a attackDice
   const [enemyEndurance, setEnemyEndurance] = useState(10);
 
   // Sonidos
@@ -28,13 +28,11 @@ const DiceConsole = ({ roomId }) => {
     setIsRolling(true);
     playSound('roll');
 
-    // Preparamos parámetros
     const combatParams = {
       enemyEndurance: parseInt(enemyEndurance),
-      combatants: parseInt(combatants)
+      combatants: parseInt(attackDice) // Pasamos el nº de dados oscuros
     };
 
-    // Si es combate: 1 dado claro (mío) y 'combatants' dados oscuros (grupo)
     const result = performTrophyRoll(rollType, lightCount, darkCount, combatParams);
 
     const messageData = {
@@ -44,7 +42,7 @@ const DiceConsole = ({ roomId }) => {
 
     await sendMessage(roomId, messageData);
     
-    // En combate, éxito es victoria total. En riesgo, es un 6.
+    // Solo suena victoria si realmente matamos al monstruo
     if (result.outcome === 'success') {
       setTimeout(() => playSound('success'), 500);
     }
@@ -80,19 +78,18 @@ const DiceConsole = ({ roomId }) => {
       {/* 2. CONTROLES */}
       <div className="p-4 space-y-4">
         
-        {/* --- MODO COMBATE --- */}
         {rollType === 'combat' ? (
           <div className="space-y-3">
              <div className="flex gap-4">
-                {/* Número de Combatientes */}
+                {/* Dados de Ataque (Oscuros) */}
                 <div className="flex-1">
                    <label className="text-[10px] text-gray-400 uppercase font-bold flex items-center gap-1 mb-1">
-                     <Users size={12}/> Combatientes
+                     <Dices size={12}/> Dados de Ataque
                    </label>
                    <div className="flex items-center w-full bg-gray-900 rounded border border-gray-700">
-                      <button onClick={() => setCombatants(Math.max(1, combatants - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
-                      <span className="flex-1 text-center font-bold text-white">{combatants}</span>
-                      <button onClick={() => setCombatants(Math.min(10, combatants + 1))} className="p-2 text-gray-400 hover:text-white">+</button>
+                      <button onClick={() => setAttackDice(Math.max(1, attackDice - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
+                      <span className="flex-1 text-center font-bold text-white">{attackDice}</span>
+                      <button onClick={() => setAttackDice(Math.min(15, attackDice + 1))} className="p-2 text-gray-400 hover:text-white">+</button>
                    </div>
                 </div>
 
@@ -109,18 +106,18 @@ const DiceConsole = ({ roomId }) => {
                 </div>
              </div>
              <p className="text-[10px] text-gray-500 italic text-center">
-               Se tirará 1 dado claro (tu punto débil) y {combatants} oscuros (ataque grupal).
+               Se lanzará 1 dado claro (tu punto débil) y {attackDice} oscuros (suma vs aguante).
              </p>
           </div>
 
         ) : rollType === 'ruin' ? (
-          /* --- MODO RUINA --- */
+          /* MODO RUINA */
           <div className="text-center text-gray-400 text-xs">
             <p className="mb-2">Tira 1 dado oscuro.</p>
             <p>Si sacas MÁS que tu Ruina actual, te salvas.</p>
           </div>
         ) : (
-          /* --- MODO RIESGO / EXPLORACIÓN --- */
+          /* MODO RIESGO / EXPLORACIÓN */
           <div className="flex justify-between gap-4">
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-text mb-1 uppercase tracking-wider">Claros</span>
@@ -142,7 +139,7 @@ const DiceConsole = ({ roomId }) => {
           </div>
         )}
 
-        {/* 3. BOTÓN DE LANZAR */}
+        {/* 3. BOTÓN */}
         <button
           onClick={handleRoll}
           disabled={isRolling}

@@ -55,10 +55,8 @@ const GameScreen = () => {
 
       // Colores de Texto
       let outcomeColor = 'text-gray-400';
-      if (msg.outcome === 'success') outcomeColor = 'text-green-400';
-      if (msg.outcome === 'partial') outcomeColor = 'text-yellow-400';
-      if (msg.outcome === 'critical_failure') outcomeColor = 'text-red-600';
-      if (msg.type === 'ruin') outcomeColor = 'text-white';
+      if (msg.outcome === 'success') outcomeColor = 'text-green-400'; // Victoria
+      if (msg.outcome === 'partial') outcomeColor = 'text-yellow-400'; // Ataque insuficiente (Combate) o Coste (Riesgo)
       // En combate, siempre mostramos el daño en un color destacado
       if (msg.type === 'combat') outcomeColor = 'text-red-300'; 
 

@@ -5,69 +5,58 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   const lightRolls = [];
   const darkRolls = [];
   
-  // Extraemos parámetros de combate si existen
-  const { enemyEndurance, combatants } = combatParams;
+  const { enemyEndurance, combatants } = combatParams; // combatants aquí representa el nº de dados oscuros actuales
 
   // 1. LANZAMIENTO
   if (type === 'ruin') {
     darkRolls.push(rollD6());
   } else if (type === 'combat') {
-    // EN COMBATE:
-    // lightCount será 1 (el dado del jugador para su Punto Débil)
-    // darkCount será igual al número de combatientes (Ataque grupal)
     if (lightCount > 0) lightRolls.push(rollD6()); // Mi punto débil
-    for (let i = 0; i < combatants; i++) darkRolls.push(rollD6()); // Ataque conjunto
+    for (let i = 0; i < combatants; i++) darkRolls.push(rollD6()); // Ataque conjunto (Dados oscuros)
   } else {
-    // RIESGO / EXPLORACIÓN
     for (let i = 0; i < lightCount; i++) lightRolls.push(rollD6());
     for (let i = 0; i < darkCount; i++) darkRolls.push(rollD6());
   }
 
-  // 2. CÁLCULOS GENERALES
+  // 2. CÁLCULOS
   const allRolls = [...lightRolls, ...darkRolls];
   const highest = Math.max(...allRolls, 0);
   const maxLight = Math.max(...lightRolls, 0);
   const maxDark = Math.max(...darkRolls, 0);
   const isDarkHighest = (type !== 'combat') && (darkRolls.length > 0) && (maxDark >= maxLight) && (maxDark === highest);
 
-  // 3. DETERMINAR RESULTADO Y TEXTOS
+  // 3. RESULTADOS Y TEXTOS
   let outcome = 'failure';
   let outcomeTitle = '';
   let outcomeDesc = '';
   
-  // Datos extra para el combate
-  let combatDamage = 0;
+  let attackTotal = 0;
   let isVictory = false;
-  let ruinMatches = [];
 
   switch (type) {
     case 'combat':
-      // Regla: Sumar todos los dados oscuros
-      combatDamage = darkRolls.reduce((a, b) => a + b, 0);
-      isVictory = combatDamage >= enemyEndurance;
+      // Suma de dados oscuros
+      attackTotal = darkRolls.reduce((a, b) => a + b, 0);
+      isVictory = attackTotal >= enemyEndurance;
       
-      // Chequeo de Ruina (Si mi dado claro coincide con algún oscuro)
-      // Nota: Esto calcula si EL JUGADOR QUE PULSÓ EL BOTÓN recibe ruina.
-      // Los demás jugadores tendrán que mirar los dados oscuros en el chat y comparar.
+      // Chequeo de Ruina (Punto Débil vs Dados Oscuros)
       const myWeakPoint = lightRolls[0];
       const matchFound = darkRolls.includes(myWeakPoint);
 
       if (isVictory) {
         outcome = 'success';
-        outcomeTitle = `¡ENEMIGO DERROTADO! (Daño: ${combatDamage})`;
-        outcomeDesc = `La suma del ataque (${combatDamage}) supera el Aguante (${enemyEndurance}).`;
+        outcomeTitle = `¡ENEMIGO ABATIDO! (Suma: ${attackTotal})`;
+        outcomeDesc = `Vuestro ataque supera el Aguante (${enemyEndurance}). La bestia ha caído.`;
       } else {
-        outcome = 'partial'; // Lo ponemos partial para indicar que la pelea sigue
-        const newEndurance = Math.max(0, enemyEndurance - combatDamage);
-        outcomeTitle = `Golpeáis al enemigo (Daño: ${combatDamage})`;
-        outcomeDesc = `El Aguante del enemigo baja a ${newEndurance}.`;
+        // CORRECCIÓN: Si no superas el aguante, NO haces daño.
+        outcome = 'partial'; // Usamos 'partial' para que salga en amarillo (aviso)
+        outcomeTitle = `Ataque Insuficiente (Suma: ${attackTotal})`;
+        outcomeDesc = `No superáis el Aguante (${enemyEndurance}). Si queréis seguir luchando, AÑADID 1 DADO OSCURO a la reserva y tirad de nuevo.`;
       }
       
-      // Añadimos aviso de Ruina personal
       if (matchFound) {
         outcomeDesc += ` | ¡CUIDADO! Tu Punto Débil (${myWeakPoint}) coincide con el ataque. Recibes 1 de Ruina.`;
       }
-
       break;
 
     case 'risk':
@@ -111,9 +100,9 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
       outcomeTitle = `Resultado: ${highest}`;
       outcomeDesc = 'Mayor que tu Ruina: Te salvas. Menor o igual: Ruina +1.';
       break;
-      
+
     default:
-        outcomeTitle = 'Resultado...';
+      outcomeTitle = 'Resultado...';
   }
 
   return {
@@ -125,8 +114,7 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
     outcomeTitle,
     outcomeDesc,
     isDarkHighest,
-    // Datos extra de combate para el chat
-    combatDamage,
+    attackTotal, // Dato extra para mostrar la suma
     enemyEndurance,
     isVictory
   };
