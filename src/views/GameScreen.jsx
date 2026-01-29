@@ -5,9 +5,10 @@ import { subscribeToRoom, joinRoom, subscribeToMessages } from '../services/room
 import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
-import DiceLayer3D from '../components/game/DiceLayer3D'; // Importación correcta
-import RulesHelp from '../components/game/RulesHelp'; // Asegúrate de que este archivo existe
-// NOTA: He quitado HelpCircle de aquí para evitar errores
+import RulesHelp from '../components/game/RulesHelp';
+import DiceLayer3D from '../components/game/DiceLayer3D'; // IMPORTANTE: El nuevo componente
+
+// Iconos
 import { 
   MessageSquare, Eye, User, Sword, Skull, Compass, AlertTriangle, Dices
 } from 'lucide-react'; 
@@ -21,7 +22,7 @@ const GameScreen = () => {
   const [joinName, setJoinName] = useState('');
   
   const [mobileTab, setMobileTab] = useState('visual'); 
-  const [showRules, setShowRules] = useState(false); // Estado para el modal de reglas
+  const [showRules, setShowRules] = useState(false);
   
   const chatEndRef = useRef(null);
 
@@ -37,7 +38,7 @@ const GameScreen = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- COMPONENTE DADO ARTESANAL (SVG) ---
+  // --- DADO ARTESANAL (SVG) PARA EL CHAT ---
   const D6 = ({ value, isDark }) => {
     const dotMap = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
     const baseClass = `w-8 h-8 rounded flex flex-wrap content-between justify-between p-1.5 shadow-sm border`;
@@ -56,7 +57,7 @@ const GameScreen = () => {
     );
   };
 
-  // --- RENDERIZADO DE MENSAJES ---
+  // --- RENDERIZADO DE MENSAJES (CHAT) ---
   const renderMessage = (msg) => {
     if (['risk', 'combat', 'hunt', 'free', 'roll'].includes(msg.type)) {
       
@@ -87,7 +88,6 @@ const GameScreen = () => {
 
       return (
         <div className={`bg-black/40 border ${borderColor} rounded p-2 mb-2`}>
-          {/* Cabecera */}
           <div className="flex justify-between items-center mb-2 pb-1 border-b border-white/10">
             <span className="font-bold text-trophy-gold text-sm">{msg.user}</span>
             <div className="flex items-center gap-1 text-[10px] text-gray-400 uppercase">
@@ -95,7 +95,6 @@ const GameScreen = () => {
             </div>
           </div>
           
-          {/* Dados VISUALES */}
           <div className="flex flex-col items-center mb-2">
              {/* Dados Claros */}
              {msg.lightRolls && msg.lightRolls.length > 0 && (
@@ -115,7 +114,6 @@ const GameScreen = () => {
              )}
           </div>
 
-          {/* Resultado Detallado */}
           <div className="text-xs text-center px-1">
              <div className={`font-bold uppercase tracking-wider mb-1 ${outcomeColor}`}>
                {msg.outcomeTitle || 'Resultado...'}
@@ -171,21 +169,8 @@ const GameScreen = () => {
       </div>
 
       {/* 2. VISUAL (COLUMNA CENTRAL) */}
-      <div className={`
-        absolute inset-0 z-0 bg-black flex flex-col
-        md:relative md:flex-1 md:border-r md:border-gray-800
-        ${mobileTab === 'visual' ? 'flex' : 'hidden'}
-      `}>
-        {/* Wrapper relativo para contener los dados en Desktop */}
-        <div className="relative w-full h-full">
-            <VisualBoard roomId={roomId} roomData={roomData} />
-
-            {/* DADOS 3D (SOLO ESCRITORIO) - Viven dentro de esta columna */}
-            <div className="hidden md:block">
-              <DiceLayer3D messages={messages} />
-            </div>
-        </div>
-
+      <div className={`absolute inset-0 z-0 bg-black flex flex-col md:relative md:flex-1 md:border-r md:border-gray-800 ${mobileTab === 'visual' ? 'flex' : 'hidden'}`}>
+        <VisualBoard roomId={roomId} roomData={roomData} />
         <div className="h-16 md:hidden bg-black"></div>
       </div>
 
@@ -202,7 +187,7 @@ const GameScreen = () => {
         <button onClick={() => setMobileTab('sheet')} className={`flex flex-col items-center gap-1 ${mobileTab === 'sheet' ? 'text-trophy-gold' : 'text-gray-500'}`}><User size={20} /><span className="text-[10px] font-bold uppercase">Ficha</span></button>
       </div>
 
-      {/* 5. BOTÓN DE AYUDA FLOTANTE (Con icono SVG manual) */}
+      {/* 5. BOTÓN DE AYUDA (SVG MANUAL) */}
       <button 
         onClick={() => setShowRules(true)}
         className="fixed top-4 right-4 z-50 bg-black/80 hover:bg-trophy-gold hover:text-black text-trophy-gold border border-trophy-gold rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-xl"
@@ -218,10 +203,9 @@ const GameScreen = () => {
       {/* 6. MODAL DE REGLAS */}
       <RulesHelp isOpen={showRules} onClose={() => setShowRules(false)} />
 
-      {/* --- DADOS 3D (MÓVIL - VISIBLE EN CUALQUIER PESTAÑA) --- */}
-      <div className="md:hidden">
-        <DiceLayer3D messages={messages} />
-      </div>
+      {/* 7. CAPA DE DADOS 3D (GLOBAL) */}
+      {/* Se renderiza siempre al final para estar encima de todo */}
+      <DiceLayer3D messages={messages} />
 
     </div>
   );
