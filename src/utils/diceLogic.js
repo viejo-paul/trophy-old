@@ -3,17 +3,12 @@ const rollD6 = () => Math.floor(Math.random() * 6) + 1;
 
 /**
  * Realiza una tirada de Trophy según el tipo y parámetros
- * @param {string} type - 'risk', 'combat', 'hunt', 'ruin'
- * @param {number} lightCount - Cantidad dados claros
- * @param {number} darkCount - Cantidad dados oscuros
- * @param {number} targetNumber - (Opcional) Para combate (Aguante del monstruo)
  */
 export const performTrophyRoll = (type, lightCount, darkCount, targetNumber = 6) => {
   const lightRolls = [];
   const darkRolls = [];
 
-  // 1. LANZAMIENTO FÍSICO
-  // En tirada de Ruina, forzamos 0 claros y 1 oscuro
+  // 1. LANZAMIENTO
   if (type === 'ruin') {
     darkRolls.push(rollD6());
   } else {
@@ -21,78 +16,88 @@ export const performTrophyRoll = (type, lightCount, darkCount, targetNumber = 6)
     for (let i = 0; i < darkCount; i++) darkRolls.push(rollD6());
   }
 
-  // 2. CÁLCULOS BÁSICOS
+  // 2. CÁLCULOS
   const allRolls = [...lightRolls, ...darkRolls];
-  const highest = Math.max(...allRolls, 0); // 0 si no hay dados
-
-  // Detectar si el dado Oscuro es el más alto (Mecánica de Ruina en Riesgo/Caza)
+  const highest = Math.max(...allRolls, 0);
+  
   const maxLight = Math.max(...lightRolls, 0);
   const maxDark = Math.max(...darkRolls, 0);
-  // Es Ruina si el Oscuro es estrictamente mayor que el Claro más alto, o si empatan en el valor más alto
-  // (Nota: En Trophy Gold, si empatan, se elige el Oscuro voluntariamente, pero aquí lo marcaremos como aviso)
+  // Es Ruina si el Oscuro es estrictamente mayor, o si empatan en el valor más alto
   const isDarkHighest = (darkRolls.length > 0) && (maxDark >= maxLight) && (maxDark === highest);
 
-  // 3. DETERMINAR RESULTADO (OUTCOME) SEGÚN TIPO
-  let outcome = 'failure';
-  let outcomeLabel = ''; // Texto para humanos
+  // 3. DETERMINAR RESULTADO (TEXTOS DEL LIBRO)
+  let outcome = 'failure'; // 'success', 'partial', 'failure', 'critical_failure'
+  let outcomeTitle = '';
+  let outcomeDesc = '';
 
   switch (type) {
-    case 'combat':
-      // En combate, el éxito depende de superar el número del monstruo
+    case 'risk': // --- TIRADA DE RIESGO ---
+      if (highest === 6) {
+        outcome = 'success';
+        outcomeTitle = 'Logras lo que quieres.';
+        outcomeDesc = 'Describe cómo o pídele al DJ que lo describa él.';
+      } else if (highest >= 4) {
+        outcome = 'partial';
+        outcomeTitle = 'Logras lo que quieres, pero se produce algún tipo de complicación.';
+        outcomeDesc = 'El DJ será quien la determine; después, tú describes cómo logras lo que querías (o viceversa).';
+      } else {
+        outcome = 'failure';
+        outcomeTitle = 'Fracasas y todo va a peor.';
+        outcomeDesc = 'El DJ describe cómo, que puede estar (o no) relacionado con alguna de las ideas propuestas antes.';
+      }
+      break;
+
+    case 'hunt': // --- TIRADA DE EXPLORACIÓN ---
+      if (highest === 6) {
+        outcome = 'success';
+        outcomeTitle = 'Ganas un contador de exploración.';
+        outcomeDesc = '';
+      } else if (highest >= 4) {
+        outcome = 'partial';
+        outcomeTitle = 'Ganas un contador de exploración, pero también encuentras algo terrible.';
+        outcomeDesc = '';
+      } else if (highest >= 2) {
+        outcome = 'failure';
+        outcomeTitle = 'Encuentras algo terrible.';
+        outcomeDesc = '';
+      } else {
+        // Caso especial: El dado más alto es un 1
+        outcome = 'critical_failure'; 
+        outcomeTitle = 'Pierdes todos tus contadores de exploración y encuentras algo terrible.';
+        outcomeDesc = 'Solo el jugador que hizo la tirada pierde sus contadores.';
+      }
+      break;
+
+    case 'combat': // --- TIRADA DE COMBATE (Pendiente de pulir en siguiente fase) ---
       if (highest >= targetNumber) {
         outcome = 'success';
-        outcomeLabel = '¡Golpe Acertado!';
+        outcomeTitle = '¡Golpe Acertado!';
+        outcomeDesc = 'Haces daño o ganas ventaja sobre el enemigo.';
       } else {
         outcome = 'failure';
-        outcomeLabel = 'Fallo (Recibes Daño)';
+        outcomeTitle = 'Fallo';
+        outcomeDesc = 'El enemigo te ataca o la situación empeora.';
       }
       break;
 
-    case 'hunt':
-      // Caza da Tokens
-      if (highest === 6) {
-        outcome = 'success';
-        outcomeLabel = 'Ganas 1 Token';
-      } else if (highest >= 4) {
-        outcome = 'partial';
-        outcomeLabel = 'Encuentras rastro (con coste)';
-      } else {
-        outcome = 'failure';
-        outcomeLabel = 'El bosque se cierra...';
-      }
-      break;
-
-    case 'ruin':
-      // La tirada de Ruina es especial: El usuario debe comparar manualmente con su Ruina actual
-      // porque aquí no tenemos acceso a su ficha. Devolvemos el valor.
+    case 'ruin': // --- TIRADA DE RUINA ---
       outcome = 'info';
-      outcomeLabel = `Resultado: ${highest}`;
+      outcomeTitle = `Resultado: ${highest}`;
+      outcomeDesc = 'Si es mayor que tu Ruina actual, reduce tu Ruina en 1. Si es menor o igual, la Ruina aumenta.';
       break;
 
-    case 'risk':
     default:
-      // Riesgo Estándar
-      if (highest === 6) {
-        outcome = 'success';
-        outcomeLabel = 'Éxito Total';
-      } else if (highest >= 4) {
-        outcome = 'partial';
-        outcomeLabel = 'Éxito con coste';
-      } else {
-        outcome = 'failure';
-        outcomeLabel = 'Fallo';
-      }
-      break;
+      outcomeTitle = 'Resultado desconocido';
   }
 
-  // Devolvemos todo el paquete de datos
   return {
     type,
     lightRolls,
     darkRolls,
     highest,
     outcome,
-    outcomeLabel,
+    outcomeTitle,
+    outcomeDesc,
     isDarkHighest,
     targetNumber
   };
