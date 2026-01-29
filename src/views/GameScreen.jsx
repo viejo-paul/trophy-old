@@ -5,8 +5,8 @@ import { subscribeToRoom, joinRoom, subscribeToMessages } from '../services/room
 import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
-// Iconos para el menú móvil
-import { MessageSquare, Eye, Scroll, User } from 'lucide-react'; 
+// Iconos
+import { MessageSquare, Eye, Scroll, User, Sword, Skull, Compass, AlertTriangle } from 'lucide-react'; 
 
 const GameScreen = () => {
   const { roomId } = useParams();
@@ -16,28 +16,110 @@ const GameScreen = () => {
   const [messages, setMessages] = useState([]);
   const [joinName, setJoinName] = useState('');
   
-  // ESTADO VISUAL PARA MÓVILES ('chat', 'visual', 'sheet')
   const [mobileTab, setMobileTab] = useState('visual'); 
-  
   const chatEndRef = useRef(null);
 
-  // --- EFECTOS Y LÓGICA DE CONEXIÓN (Igual que antes) ---
   useEffect(() => {
     if (!roomId) return;
     const unsubRoom = subscribeToRoom(roomId, (data) => setRoomData(data));
     const unsubMsg = subscribeToMessages(roomId, (msgs) => setMessages(msgs));
-
     if (user?.name) joinRoom(roomId, user.name);
-
-    return () => {
-      unsubRoom();
-      unsubMsg();
-    };
+    return () => { unsubRoom(); unsubMsg(); };
   }, [roomId, user]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // --- RENDERIZADO DE MENSAJES (LA PARTE IMPORTANTE) ---
+  const renderMessage = (msg) => {
+    // Si es una tirada (Cualquiera de los 4 tipos nuevos)
+    if (['risk', 'combat', 'hunt', 'ruin', 'roll'].includes(msg.type)) {
+      
+      let borderColor = 'border-gray-700';
+      let icon = <AlertTriangle size={14} className="text-trophy-gold" />;
+      let title = "Tirada de Riesgo";
+      
+      // Personalizamos según tipo
+      if (msg.type === 'combat') {
+        borderColor = 'border-red-900';
+        icon = <Sword size={14} className="text-red-500" />;
+        title = "Combate";
+      } else if (msg.type === 'hunt') {
+        borderColor = 'border-green-800';
+        icon = <Compass size={14} className="text-green-500" />;
+        title = "Exploración";
+      } else if (msg.type === 'ruin') {
+        borderColor = 'border-gray-600';
+        icon = <Skull size={14} className="text-gray-400" />;
+        title = "Prueba de Ruina";
+      }
+
+      return (
+        <div className={`bg-black/40 border ${borderColor} rounded p-2 mb-2`}>
+          {/* Cabecera del mensaje */}
+          <div className="flex justify-between items-center mb-2 pb-1 border-b border-white/10">
+            <span className="font-bold text-trophy-gold text-sm">{msg.user}</span>
+            <div className="flex items-center gap-1 text-xs text-gray-400 uppercase">
+              {icon} {title}
+            </div>
+          </div>
+          
+          {/* Los Dados */}
+          <div className="flex flex-wrap gap-1 mb-2 justify-center">
+            {msg.lightRolls && msg.lightRolls.map((r, i) => (
+              <span key={`l-${i}`} className={`w-8 h-8 flex items-center justify-center font-bold rounded shadow-sm text-lg ${
+                // En combate, marcamos en verde los dados que superan el aguante
+                msg.type === 'combat' && r >= msg.targetNumber ? 'bg-green-600 text-white' : 'bg-gray-200 text-black'
+              }`}>
+                {r}
+              </span>
+            ))}
+            {msg.darkRolls && msg.darkRolls.map((r, i) => (
+              <span key={`d-${i}`} className={`w-8 h-8 flex items-center justify-center font-bold rounded shadow-sm border text-lg ${
+                // En combate, marcamos en verde si superan aguante, sino rojo oscuro
+                msg.type === 'combat' && r >= msg.targetNumber ? 'bg-green-900 text-green-200 border-green-500' : 'bg-trophy-red text-black border-red-900'
+              }`}>
+                {r}
+              </span>
+            ))}
+          </div>
+
+          {/* Resultado Texto */}
+          <div className="text-xs text-center">
+             {/* Texto del Resultado (Viene de diceLogic: outcomeLabel) */}
+             <div className={`font-bold uppercase tracking-wider mb-1 ${
+                msg.outcome === 'success' ? 'text-green-400' : 
+                msg.outcome === 'partial' ? 'text-yellow-400' : 
+                msg.type === 'ruin' ? 'text-white' : 'text-gray-400'
+             }`}>
+               {msg.outcomeLabel || 'Resultado...'}
+             </div>
+             
+             {/* Subtextos específicos */}
+             {msg.type === 'combat' && (
+               <div className="text-[10px] text-gray-500">vs Aguante {msg.targetNumber}</div>
+             )}
+             
+             {/* Aviso de Ruina */}
+             {msg.isDarkHighest && (
+                <div className="mt-1 flex items-center justify-center gap-1 text-trophy-red font-bold animate-pulse bg-red-900/20 p-1 rounded">
+                  <Skull size={12} /> ¡POSIBLE RUINA!
+                </div>
+             )}
+          </div>
+        </div>
+      );
+    } 
+    
+    // Si es texto normal
+    return (
+      <div className="text-gray-300 mb-2 text-sm px-2">
+        <span className="font-bold text-gray-500 mr-2">{msg.user}:</span>
+        {msg.text}
+      </div>
+    );
+  };
 
   // --- PORTERO (LOGIN) ---
   if (!user) {
@@ -70,129 +152,59 @@ const GameScreen = () => {
   return (
     <div className="flex h-screen w-full bg-trophy-dark overflow-hidden text-sm relative">
       
-      {/* ------------------------------------------------------
-          COLUMNA 1: CHAT Y DADOS
-          En Móvil: Solo visible si mobileTab === 'chat'
-          En PC (md): Siempre visible (w-1/4)
-      ------------------------------------------------------ */}
+      {/* COLUMNA 1: CHAT */}
       <div className={`
         absolute inset-0 z-10 bg-trophy-dark flex flex-col
         md:relative md:z-0 md:flex md:w-1/4 md:min-w-[320px] md:border-r md:border-gray-800
         ${mobileTab === 'chat' ? 'flex' : 'hidden'}
       `}>
-        {/* Cabecera Chat */}
         <div className="p-3 border-b border-gray-800 bg-black/40 flex justify-between items-center">
           <h3 className="text-trophy-gold font-serif font-bold">Registro</h3>
           <span className="text-xs text-gray-500">{roomData.players?.length} aventureros</span>
         </div>
 
-        {/* Mensajes */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar pb-24 md:pb-4">
+        <div className="flex-1 p-4 overflow-y-auto custom-scrollbar pb-24 md:pb-4">
           {messages.map((msg) => (
-            <div key={msg.id} className="mb-2 animate-fade-in">
-              {msg.type === 'roll' ? (
-                <div className="bg-black/40 border border-gray-700 rounded p-2">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <span className="font-bold text-trophy-gold">{msg.user}</span>
-                    <span className="text-xs text-gray-500">tira dados</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {msg.lightRolls.map((r, i) => (
-                      <span key={`l-${i}`} className="w-6 h-6 flex items-center justify-center bg-gray-200 text-black font-bold rounded shadow-sm">{r}</span>
-                    ))}
-                    {msg.darkRolls.map((r, i) => (
-                      <span key={`d-${i}`} className="w-6 h-6 flex items-center justify-center bg-trophy-red text-black font-bold rounded shadow-sm border border-red-900">{r}</span>
-                    ))}
-                  </div>
-                  <div className="text-xs border-t border-gray-700 pt-1 flex justify-between">
-                    <span className={`uppercase font-bold ${
-                      msg.outcome === 'success' ? 'text-green-400' : 
-                      msg.outcome === 'partial' ? 'text-yellow-400' : 'text-gray-400'
-                    }`}>
-                      {msg.outcome === 'success' ? 'Éxito' : msg.outcome === 'partial' ? 'Con coste' : 'Fallo'}
-                    </span>
-                    {msg.isDarkHighest && <span className="text-trophy-red font-bold animate-pulse">¡RUINA!</span>}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-gray-300">
-                  <span className="font-bold text-gray-500">{msg.user}:</span> {msg.text}
-                </div>
-              )}
+            <div key={msg.id} className="animate-fade-in">
+              {renderMessage(msg)}
             </div>
           ))}
           <div ref={chatEndRef} />
         </div>
 
-        {/* Consola Dados (Fija abajo en móvil para que no moleste el teclado) */}
         <div className="border-t border-gray-800 md:relative">
           <DiceConsole roomId={roomId} />
         </div>
-        
-        {/* Espaciador para la barra de navegación móvil */}
         <div className="h-16 md:hidden"></div>
       </div>
 
-      {/* ------------------------------------------------------
-          COLUMNA 2: VISUAL (CENTRO)
-          En Móvil: Solo visible si mobileTab === 'visual'
-          En PC (md): Siempre visible (flex-1)
-      ------------------------------------------------------ */}
+      {/* COLUMNA 2: VISUAL */}
       <div className={`
         absolute inset-0 z-0 bg-black flex flex-col
         md:relative md:flex-1 md:border-r md:border-gray-800
         ${mobileTab === 'visual' ? 'flex' : 'hidden'}
       `}>
         <VisualBoard roomId={roomId} roomData={roomData} />
-        {/* Espaciador móvil */}
         <div className="h-16 md:hidden bg-black"></div>
       </div>
 
-      {/* ------------------------------------------------------
-          COLUMNA 3: FICHA
-          En Móvil: Solo visible si mobileTab === 'sheet'
-          En PC (md): Siempre visible (w-1/4)
-      ------------------------------------------------------ */}
+      {/* COLUMNA 3: FICHA */}
       <div className={`
         absolute inset-0 z-10 bg-trophy-panel flex flex-col
         md:relative md:z-0 md:flex md:w-1/4 md:min-w-[350px] md:border-l md:border-gray-800
         ${mobileTab === 'sheet' ? 'flex' : 'hidden'}
       `}>
-         {/* Wrapper para el scroll de la ficha */}
          <div className="flex-1 overflow-hidden relative">
             <CharacterSheet roomId={roomId} gameMode={roomData.gameMode} />
          </div>
-         {/* Espaciador móvil */}
          <div className="h-16 md:hidden bg-trophy-panel"></div>
       </div>
 
-      {/* ------------------------------------------------------
-          BARRA DE NAVEGACIÓN MÓVIL (SOLO VISIBLE EN MÓVIL)
-      ------------------------------------------------------ */}
+      {/* NAV MÓVIL */}
       <div className="md:hidden fixed bottom-0 left-0 w-full bg-trophy-panel border-t border-gray-700 flex justify-around p-3 z-50 shadow-2xl pb-safe">
-        <button 
-          onClick={() => setMobileTab('chat')}
-          className={`flex flex-col items-center gap-1 ${mobileTab === 'chat' ? 'text-trophy-gold' : 'text-gray-500'}`}
-        >
-          <MessageSquare size={20} />
-          <span className="text-[10px] font-bold uppercase">Chat</span>
-        </button>
-        
-        <button 
-          onClick={() => setMobileTab('visual')}
-          className={`flex flex-col items-center gap-1 ${mobileTab === 'visual' ? 'text-trophy-gold' : 'text-gray-500'}`}
-        >
-          <Eye size={20} />
-          <span className="text-[10px] font-bold uppercase">Visual</span>
-        </button>
-        
-        <button 
-          onClick={() => setMobileTab('sheet')}
-          className={`flex flex-col items-center gap-1 ${mobileTab === 'sheet' ? 'text-trophy-gold' : 'text-gray-500'}`}
-        >
-          <User size={20} />
-          <span className="text-[10px] font-bold uppercase">Ficha</span>
-        </button>
+        <button onClick={() => setMobileTab('chat')} className={`flex flex-col items-center gap-1 ${mobileTab === 'chat' ? 'text-trophy-gold' : 'text-gray-500'}`}><MessageSquare size={20} /><span className="text-[10px] font-bold uppercase">Chat</span></button>
+        <button onClick={() => setMobileTab('visual')} className={`flex flex-col items-center gap-1 ${mobileTab === 'visual' ? 'text-trophy-gold' : 'text-gray-500'}`}><Eye size={20} /><span className="text-[10px] font-bold uppercase">Visual</span></button>
+        <button onClick={() => setMobileTab('sheet')} className={`flex flex-col items-center gap-1 ${mobileTab === 'sheet' ? 'text-trophy-gold' : 'text-gray-500'}`}><User size={20} /><span className="text-[10px] font-bold uppercase">Ficha</span></button>
       </div>
 
     </div>

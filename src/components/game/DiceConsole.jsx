@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { performTrophyRoll } from '../../utils/diceLogic';
 import { sendMessage } from '../../services/roomService';
 import { useGame } from '../../context/GameContext';
-import { Sword, Footprints, Skull, AlertTriangle } from 'lucide-react'; // Iconos para las pestañas
+import { Sword, Compass, Skull, AlertTriangle } from 'lucide-react'; // Cambié Footprints por Compass
 
 const DiceConsole = ({ roomId }) => {
   const { user } = useGame();
@@ -11,7 +11,7 @@ const DiceConsole = ({ roomId }) => {
   const [rollType, setRollType] = useState('risk'); // 'risk', 'combat', 'hunt', 'ruin'
   const [lightCount, setLightCount] = useState(1);
   const [darkCount, setDarkCount] = useState(0);
-  const [targetNumber, setTargetNumber] = useState(6); // Solo para combate
+  const [targetNumber, setTargetNumber] = useState(6);
   const [isRolling, setIsRolling] = useState(false);
 
   // Sonidos
@@ -25,17 +25,15 @@ const DiceConsole = ({ roomId }) => {
     setIsRolling(true);
     playSound('roll');
 
-    // 1. Usar la nueva lógica con todos los parámetros
     const result = performTrophyRoll(rollType, lightCount, darkCount, targetNumber);
 
-    // 2. Preparar mensaje
     const messageData = {
-      type: 'roll',
+      // OJO: Aquí enviamos 'rollType' separado para no machacar el tipo principal si quisieramos
+      // Pero para mantener compatibilidad con lo que hicimos antes, dejamos que result sobreescriba.
       user: user.name,
-      ...result // Enviamos todo lo que devolvió diceLogic
+      ...result 
     };
 
-    // 3. Enviar
     await sendMessage(roomId, messageData);
     
     if (result.outcome === 'success') {
@@ -45,7 +43,6 @@ const DiceConsole = ({ roomId }) => {
     setIsRolling(false);
   };
 
-  // Componente pequeño para el botón de pestaña
   const TabButton = ({ type, icon: Icon, label, color }) => (
     <button
       onClick={() => setRollType(type)}
@@ -67,23 +64,20 @@ const DiceConsole = ({ roomId }) => {
       <div className="flex border-b border-gray-800">
         <TabButton type="risk" icon={AlertTriangle} label="Riesgo" color="trophy-gold" />
         <TabButton type="combat" icon={Sword} label="Combate" color="red-500" />
-        <TabButton type="hunt" icon={Footprints} label="Caza" color="green-500" />
+        <TabButton type="hunt" icon={Compass} label="Exploración" color="green-500" />
         <TabButton type="ruin" icon={Skull} label="Ruina" color="gray-400" />
       </div>
 
-      {/* 2. CONTROLES (Cambian según la pestaña) */}
+      {/* 2. CONTROLES */}
       <div className="p-4 space-y-4">
         
-        {/* CASO ESPECIAL: RUINA (Solo un botón, sin contadores) */}
         {rollType === 'ruin' ? (
           <div className="text-center text-gray-400 text-xs">
             <p className="mb-2">Tira 1 dado oscuro.</p>
             <p>Si sacas MÁS que tu Ruina actual, te salvas.</p>
           </div>
         ) : (
-          /* CASO NORMAL: Contadores de dados */
           <div className="flex justify-between gap-4">
-            
             {/* Dados Claros */}
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-text mb-1 uppercase tracking-wider">Claros</span>
@@ -106,7 +100,7 @@ const DiceConsole = ({ roomId }) => {
           </div>
         )}
 
-        {/* INPUT EXTRA: Solo para Combate */}
+        {/* INPUT COMBATE */}
         {rollType === 'combat' && (
           <div className="flex items-center justify-between bg-red-900/20 p-2 rounded border border-red-900/50">
             <span className="text-xs text-red-400 uppercase font-bold">Aguante del Enemigo:</span>
@@ -132,7 +126,7 @@ const DiceConsole = ({ roomId }) => {
         >
           {isRolling ? '...' : 
            rollType === 'combat' ? 'ATACAR' : 
-           rollType === 'hunt' ? 'CAZAR' : 
+           rollType === 'hunt' ? 'EXPLORAR' : 
            rollType === 'ruin' ? 'RESISTIR RUINA' : 'ARRIESGAR'}
         </button>
 
