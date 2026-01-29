@@ -5,10 +5,9 @@ import { subscribeToRoom, joinRoom, subscribeToMessages } from '../services/room
 import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
-// Iconos (Incluidos los Dados 1-6)
+// Quitamos los Dice1...Dice6 que daban problemas
 import { 
-  MessageSquare, Eye, User, Sword, Skull, Compass, AlertTriangle, Dices,
-  Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 
+  MessageSquare, Eye, User, Sword, Skull, Compass, AlertTriangle, Dices
 } from 'lucide-react'; 
 
 const GameScreen = () => {
@@ -32,23 +31,43 @@ const GameScreen = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- HELPER: RENDERIZAR CARA DEL DADO (PUNTOS) ---
-  const renderDieFace = (num) => {
-    const props = { size: 20, strokeWidth: 2.5 }; // Tamaño y grosor de los puntos
-    switch (num) {
-      case 1: return <Dice1 {...props} />;
-      case 2: return <Dice2 {...props} />;
-      case 3: return <Dice3 {...props} />;
-      case 4: return <Dice4 {...props} />;
-      case 5: return <Dice5 {...props} />;
-      case 6: return <Dice6 {...props} />;
-      default: return <Dice1 {...props} />;
-    }
+  // --- NUEVO: DIBUJAR DADO CON HTML/CSS (Más robusto y bonito) ---
+  const D6 = ({ value, isDark }) => {
+    // Posiciones de los puntos para cada número (grid 3x3)
+    const dotMap = {
+      1: [4],
+      2: [0, 8],
+      3: [0, 4, 8],
+      4: [0, 2, 6, 8],
+      5: [0, 2, 4, 6, 8],
+      6: [0, 2, 3, 5, 6, 8]
+    };
+    
+    // Estilos base
+    const baseClass = `w-8 h-8 rounded flex flex-wrap content-between justify-between p-1.5 shadow-sm border`;
+    // Dado Claro: Blanco con puntos negros
+    const lightClass = "bg-gray-200 border-gray-400"; 
+    // Dado Oscuro: Negro con puntos blancos y borde gris
+    const darkClass = "bg-black border-gray-600 shadow-md"; 
+    
+    const dotColor = isDark ? "bg-white" : "bg-black";
+
+    return (
+      <div className={`${baseClass} ${isDark ? darkClass : lightClass} relative`}>
+        {[0,1,2,3,4,5,6,7,8].map(i => (
+          <div key={i} className="w-1.5 h-1.5 flex items-center justify-center">
+            {dotMap[value]?.includes(i) && (
+              <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // --- RENDERIZADO DE MENSAJES ---
   const renderMessage = (msg) => {
-    if (['risk', 'combat', 'hunt', 'free', 'roll'].includes(msg.type)) { // Incluido 'free'
+    if (['risk', 'combat', 'hunt', 'free', 'roll'].includes(msg.type)) {
       
       let borderColor = 'border-gray-700';
       let icon = <AlertTriangle size={14} className="text-trophy-gold" />;
@@ -86,29 +105,27 @@ const GameScreen = () => {
             </div>
           </div>
           
-          {/* Dados (PUNTOS Y COLORES NUEVOS) */}
+          {/* Dados VISUALES */}
           <div className="flex flex-col items-center mb-2">
              {/* Dados Claros */}
              {msg.lightRolls && msg.lightRolls.length > 0 && (
                <div className="flex items-center gap-2 mb-1">
                  {msg.type === 'combat' && <span className="text-[9px] text-gray-500 uppercase">Punto Débil:</span>}
                  {msg.lightRolls.map((r, i) => (
-                    <span key={`l-${i}`} className="w-8 h-8 flex items-center justify-center bg-gray-200 text-black rounded shadow-sm">
-                      {renderDieFace(r)}
-                    </span>
+                    // Usamos el nuevo componente D6 isDark={false}
+                    <D6 key={`l-${i}`} value={r} isDark={false} />
                  ))}
                </div>
              )}
 
-             {/* Dados Oscuros (AHORA NEGROS CON BORDE BLANCO) */}
+             {/* Dados Oscuros */}
              {msg.darkRolls && msg.darkRolls.length > 0 && (
                <div className="flex items-center gap-2">
                  {msg.type === 'combat' && <span className="text-[9px] text-red-400 uppercase">Ataque:</span>}
                  <div className="flex flex-wrap gap-1">
                     {msg.darkRolls.map((r, i) => (
-                      <span key={`d-${i}`} className="w-8 h-8 flex items-center justify-center bg-black text-white border border-gray-300 rounded shadow-sm">
-                        {renderDieFace(r)}
-                      </span>
+                      // Usamos el nuevo componente D6 isDark={true}
+                      <D6 key={`d-${i}`} value={r} isDark={true} />
                     ))}
                  </div>
                </div>
@@ -137,6 +154,7 @@ const GameScreen = () => {
       );
     } 
     
+    // Fallback para mensajes antiguos o de texto
     return (
       <div className="text-gray-300 mb-2 text-sm px-2">
         <span className="font-bold text-gray-500 mr-2">{msg.user}:</span>
@@ -146,7 +164,7 @@ const GameScreen = () => {
   };
 
   if (!user) {
-    // LOGIN COMPONENT (Sin cambios)
+    // LOGIN (Sin cambios)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-trophy-dark text-trophy-text p-4">
         <div className="bg-trophy-panel p-8 rounded-lg shadow-2xl border border-gray-800 max-w-md w-full text-center">
