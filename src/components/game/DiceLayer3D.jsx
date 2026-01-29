@@ -13,7 +13,7 @@ const DiceLayer3D = ({ messages }) => {
     // Cogemos el último mensaje
     const lastMsg = messages[messages.length - 1];
 
-    // Evitamos repetir la misma tirada si ya la hemos hecho
+    // Evitamos repetir la misma tirada si ya la hemos hecho (por re-renders)
     if (lastMsgIdRef.current === lastMsg.id) return;
 
     // Si es un tipo de mensaje que requiere dados
@@ -24,14 +24,14 @@ const DiceLayer3D = ({ messages }) => {
   }, [messages]);
 
   const triggerRoll = (rollData) => {
-    // 1. Primero mostramos el overlay (hacemos visible el contenedor)
+    // 1. Mostramos el overlay
     setShowOverlay(true);
 
     const lightValues = rollData.lightRolls || [];
     const darkValues = rollData.darkRolls || [];
 
-    // 2. IMPORTANTE: Damos un pequeño respiro (100ms) para que React pinte el div
-    // antes de decirle a la librería que calcule las físicas.
+    // 2. Pequeño retardo para asegurar que la transición de opacidad ha comenzado
+    // y el navegador está listo para animar el canvas.
     setTimeout(() => {
       // Tirar Dados Claros
       if (lightDiceRef.current && lightValues.length > 0) {
@@ -55,16 +55,15 @@ const DiceLayer3D = ({ messages }) => {
     }, 4500);
   };
 
-  // Si no hay overlay, usamos 'invisible' en lugar de no renderizar, 
-  // para que la librería se mantenga cargada en memoria.
   return (
     <div 
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 ${showOverlay ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-[2px] transition-all duration-300 ${showOverlay ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
     >
        <div className="flex items-center justify-center gap-8 md:gap-16">
           
           {/* GRUPO 1: DADOS CLAROS (Blanco Hueso) */}
-          <div className={!showOverlay ? 'hidden' : ''}>
+          {/* IMPORTANTE: Quitamos 'hidden' y aseguramos un tamaño mínimo */}
+          <div className="min-w-[60px] min-h-[60px]">
              <ReactDice
                ref={lightDiceRef}
                numDice={1}            
@@ -79,7 +78,7 @@ const DiceLayer3D = ({ messages }) => {
           </div>
 
           {/* GRUPO 2: DADOS OSCUROS (Negro y Dorado) */}
-          <div className={!showOverlay ? 'hidden' : ''}>
+          <div className="min-w-[60px] min-h-[60px]">
              <ReactDice
                ref={darkDiceRef}
                numDice={1}

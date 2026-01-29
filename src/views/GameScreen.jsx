@@ -6,7 +6,7 @@ import DiceConsole from '../components/game/DiceConsole';
 import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
 import RulesHelp from '../components/game/RulesHelp';
-import DiceLayer3D from '../components/game/DiceLayer3D'; // IMPORTANTE: El nuevo componente
+import DiceLayer3D from '../components/game/DiceLayer3D'; 
 
 // Iconos
 import { 
@@ -187,7 +187,7 @@ const GameScreen = () => {
         <button onClick={() => setMobileTab('sheet')} className={`flex flex-col items-center gap-1 ${mobileTab === 'sheet' ? 'text-trophy-gold' : 'text-gray-500'}`}><User size={20} /><span className="text-[10px] font-bold uppercase">Ficha</span></button>
       </div>
 
-      {/* 5. BOTÓN DE AYUDA (SVG MANUAL) */}
+      {/* 5. BOTÓN DE AYUDA */}
       <button 
         onClick={() => setShowRules(true)}
         className="fixed top-4 right-4 z-50 bg-black/80 hover:bg-trophy-gold hover:text-black text-trophy-gold border border-trophy-gold rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-xl"
@@ -204,7 +204,6 @@ const GameScreen = () => {
       <RulesHelp isOpen={showRules} onClose={() => setShowRules(false)} />
 
       {/* 7. CAPA DE DADOS 3D (GLOBAL) */}
-      {/* Se renderiza siempre al final para estar encima de todo */}
       <DiceLayer3D messages={messages} />
 
     </div>
