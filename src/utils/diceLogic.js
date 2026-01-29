@@ -5,14 +5,16 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   const lightRolls = [];
   const darkRolls = [];
   
-  const { enemyEndurance, combatants } = combatParams;
+  // SOLUCIÓN AL ERROR: Valores por defecto para evitar 'undefined'
+  const { enemyEndurance = 0, combatants = 0 } = combatParams || {};
 
   // 1. LANZAMIENTO
   if (type === 'combat') {
     if (lightCount > 0) lightRolls.push(rollD6()); 
+    // Usamos 'combatants' que viene del input 'attackDice'
     for (let i = 0; i < combatants; i++) darkRolls.push(rollD6()); 
   } else {
-    // RIESGO, EXPLORACIÓN Y LIBRE usan los contadores normales
+    // RIESGO, EXPLORACIÓN Y LIBRE
     for (let i = 0; i < lightCount; i++) lightRolls.push(rollD6());
     for (let i = 0; i < darkCount; i++) darkRolls.push(rollD6());
   }
@@ -22,7 +24,7 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   const highest = Math.max(...allRolls, 0);
   const maxLight = Math.max(...lightRolls, 0);
   const maxDark = Math.max(...darkRolls, 0);
-  // Ruina solo aplica en Riesgo/Exploración/Combate
+  
   const isDarkHighest = (type !== 'combat' && type !== 'free') && (darkRolls.length > 0) && (maxDark >= maxLight) && (maxDark === highest);
 
   // 3. RESULTADOS
@@ -30,15 +32,14 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
   let outcomeTitle = '';
   let outcomeDesc = '';
   
-  // Datos combate
   let attackTotal = 0;
   let isVictory = false;
 
   switch (type) {
-    case 'free': // --- TIRADA LIBRE (NUEVO) ---
+    case 'free': 
       outcome = 'info';
       outcomeTitle = 'Tirada Libre';
-      outcomeDesc = 'Sin reglas automáticas. Interpreta los dados según la situación.';
+      outcomeDesc = 'Interpreta los dados según la situación.';
       break;
 
     case 'combat':
@@ -102,6 +103,7 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
       outcomeTitle = 'Resultado...';
   }
 
+  // RETORNO SANITIZADO (Sin undefined)
   return {
     type,
     lightRolls,
@@ -109,10 +111,10 @@ export const performTrophyRoll = (type, lightCount, darkCount, combatParams = {}
     highest,
     outcome,
     outcomeTitle,
-    outcomeDesc,
+    outcomeDesc: outcomeDesc || '', // Aseguramos string vacío si no hay
     isDarkHighest,
-    attackTotal,
-    enemyEndurance,
-    isVictory
+    attackTotal: attackTotal || 0,
+    enemyEndurance: enemyEndurance || 0,
+    isVictory: isVictory || false
   };
 };

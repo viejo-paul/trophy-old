@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { performTrophyRoll } from '../../utils/diceLogic';
 import { sendMessage } from '../../services/roomService';
 import { useGame } from '../../context/GameContext';
-import { Sword, Compass, Dices, AlertTriangle } from 'lucide-react'; // Iconos
+import { Sword, Compass, Dices, AlertTriangle } from 'lucide-react';
 
 const DiceConsole = ({ roomId }) => {
   const { user } = useGame();
@@ -24,28 +24,36 @@ const DiceConsole = ({ roomId }) => {
   };
 
   const handleRoll = async () => {
+    if (isRolling) return; // Evitar doble click
     setIsRolling(true);
-    playSound('roll');
-
-    const combatParams = {
-      enemyEndurance: parseInt(enemyEndurance),
-      combatants: parseInt(attackDice)
-    };
-
-    const result = performTrophyRoll(rollType, lightCount, darkCount, combatParams);
-
-    const messageData = {
-      user: user.name,
-      ...result 
-    };
-
-    await sendMessage(roomId, messageData);
     
-    if (result.outcome === 'success') {
-      setTimeout(() => playSound('success'), 500);
-    }
+    try {
+      playSound('roll');
 
-    setIsRolling(false);
+      const combatParams = {
+        enemyEndurance: parseInt(enemyEndurance) || 0,
+        combatants: parseInt(attackDice) || 1
+      };
+
+      const result = performTrophyRoll(rollType, lightCount, darkCount, combatParams);
+
+      const messageData = {
+        user: user.name,
+        ...result 
+      };
+
+      // Aquí es donde fallaba antes si había un undefined
+      await sendMessage(roomId, messageData);
+      
+      if (result.outcome === 'success') {
+        setTimeout(() => playSound('success'), 500);
+      }
+    } catch (error) {
+      console.error("Error al lanzar dados:", error);
+      alert("Hubo un error al lanzar. Revisa la consola o recarga.");
+    } finally {
+      setIsRolling(false); // Siempre desbloqueamos el botón
+    }
   };
 
   const TabButton = ({ type, icon: Icon, label, color }) => (
@@ -70,7 +78,6 @@ const DiceConsole = ({ roomId }) => {
         <TabButton type="risk" icon={AlertTriangle} label="Riesgo" color="trophy-gold" />
         <TabButton type="combat" icon={Sword} label="Combate" color="red-500" />
         <TabButton type="hunt" icon={Compass} label="Exploración" color="green-500" />
-        {/* Cambiado de Ruina a Libre */}
         <TabButton type="free" icon={Dices} label="Libre" color="white" />
       </div>
 
@@ -100,7 +107,7 @@ const DiceConsole = ({ roomId }) => {
           </div>
 
         ) : (
-          /* MODO RIESGO / EXPLORACIÓN / LIBRE (Comparten interfaz) */
+          /* MODO RIESGO / EXPLORACIÓN / LIBRE */
           <div className="flex justify-between gap-4">
             <div className="flex flex-col items-center w-1/2">
               <span className="text-xs text-trophy-text mb-1 uppercase tracking-wider">Claros</span>
@@ -112,7 +119,6 @@ const DiceConsole = ({ roomId }) => {
             </div>
 
             <div className="flex flex-col items-center w-1/2">
-              {/* En modo libre, el dado oscuro es opcional/neutral */}
               <span className={`text-xs mb-1 uppercase tracking-wider ${rollType === 'free' ? 'text-gray-400' : 'text-trophy-red'}`}>Oscuros</span>
               <div className={`flex items-center w-full bg-gray-900 rounded border ${rollType === 'free' ? 'border-gray-500' : 'border-trophy-red/50'}`}>
                 <button onClick={() => setDarkCount(Math.max(0, darkCount - 1))} className="p-2 text-gray-400 hover:text-white">-</button>
@@ -130,7 +136,7 @@ const DiceConsole = ({ roomId }) => {
           className={`w-full py-3 font-serif font-bold text-lg rounded shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
             rollType === 'combat' ? 'bg-trophy-red text-white hover:bg-red-800' :
             rollType === 'hunt' ? 'bg-green-700 text-white hover:bg-green-600' :
-            rollType === 'free' ? 'bg-gray-200 text-black hover:bg-white' : // Botón blanco/gris para libre
+            rollType === 'free' ? 'bg-gray-200 text-black hover:bg-white' :
             'bg-trophy-gold text-black hover:bg-yellow-600'
           }`}
         >
