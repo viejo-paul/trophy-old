@@ -1,100 +1,103 @@
 import React, { useEffect, useRef, useState } from 'react';
-import ReactDice from 'react-dice-complete';
+import DiceBox from '@3d-dice/dice-box';
 
 const DiceLayer3D = ({ messages }) => {
-  const lightDiceRef = useRef(null);
-  const darkDiceRef = useRef(null);
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [diceBox, setDiceBox] = useState(null);
   const lastMsgIdRef = useRef(null);
+  const containerRef = useRef(null); // Referencia al div contenedor
 
+  // 1. INICIALIZAR EL MOTOR DE DADOS (Solo una vez)
   useEffect(() => {
-    if (!messages || messages.length === 0) return;
+    // Evitar doble inicialización
+    if (diceBox) return;
 
-    // Cogemos el último mensaje
+    const box = new DiceBox("#dice-box-canvas", {
+      id: "dice-canvas", // ID del canvas interno
+      assetPath: "https://unpkg.com/@3d-dice/dice-box@1.1.3/dist/assets/", // Cargamos assets desde la nube
+      scale: 6, // Tamaño de los dados
+      theme: "default",
+      gravity: 1,
+      mass: 1,
+      friction: 0.8
+    });
+
+    box.init().then(() => {
+      setDiceBox(box);
+      console.log("DiceBox 3D Ready!");
+    });
+
+  }, []); // Array vacío = solo al montar
+
+  // 2. ESCUCHAR MENSAJES Y LANZAR
+  useEffect(() => {
+    if (!messages || messages.length === 0 || !diceBox) return;
+
     const lastMsg = messages[messages.length - 1];
 
-    // Evitamos repetir la misma tirada si ya la hemos hecho
     if (lastMsgIdRef.current === lastMsg.id) return;
 
-    // Si es un tipo de mensaje que requiere dados
     if (['risk', 'combat', 'hunt', 'free'].includes(lastMsg.type)) {
        lastMsgIdRef.current = lastMsg.id;
        triggerRoll(lastMsg);
     }
-  }, [messages]);
+  }, [messages, diceBox]);
 
   const triggerRoll = (rollData) => {
-    // 1. Primero mostramos el overlay (hacemos visible el contenedor)
-    setShowOverlay(true);
+    // Limpiamos los dados anteriores antes de tirar
+    diceBox.clear();
 
-    const lightValues = rollData.lightRolls || [];
-    const darkValues = rollData.darkRolls || [];
+    const lightRolls = rollData.lightRolls || [];
+    const darkRolls = rollData.darkRolls || [];
 
-    // 2. Damos un pequeño respiro para que React pinte el div
+    // Preparamos la configuración de la tirada
+    // DiceBox permite tirar grupos con diferentes colores
+    const diceGroups = [];
+
+    // GRUPO 1: DADOS CLAROS (Blancos #e5e5e5 con texto Negro)
+    lightRolls.forEach(val => {
+      diceGroups.push({
+        sides: 6,
+        themeColor: '#e5e5e5', // Fondo Blanco Hueso
+        themeFontColor: '#000000', // Puntos Negros
+        qty: 1,
+        settleResult: val // FORZAMOS EL RESULTADO para que coincida con la lógica
+      });
+    });
+
+    // GRUPO 2: DADOS OSCUROS (Negros #0f0f0f con texto Dorado)
+    darkRolls.forEach(val => {
+      diceGroups.push({
+        sides: 6,
+        themeColor: '#0f0f0f', // Fondo Negro
+        themeFontColor: '#fbbf24', // Puntos Dorados (Trophy Gold)
+        qty: 1,
+        settleResult: val // FORZAMOS EL RESULTADO
+      });
+    });
+
+    if (diceGroups.length === 0) return;
+
+    // Reproducir sonido
+    const audio = new Audio('/assets/sounds/dice-hit.mp3'); 
+    audio.volume = 0.6;
+    audio.play().catch(() => {});
+
+    // LANZAR
+    diceBox.roll(diceGroups);
+
+    // Limpiar después de 5 segundos
     setTimeout(() => {
-      // Tirar Dados Claros
-      if (lightDiceRef.current && lightValues.length > 0) {
-        lightDiceRef.current.rollAll(lightValues);
-      }
-
-      // Tirar Dados Oscuros
-      if (darkDiceRef.current && darkValues.length > 0) {
-        darkDiceRef.current.rollAll(darkValues);
-      }
-
-      // Sonido
-      const audio = new Audio('/assets/sounds/dice-hit.mp3'); 
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
-    }, 100);
-
-    // 3. Ocultar todo después de 4.5 segundos
-    setTimeout(() => {
-      setShowOverlay(false);
-    }, 4500);
+      diceBox.clear();
+    }, 5000);
   };
 
-  // Si no hay overlay, usamos 'invisible' y 'opacity-0' pero MANTENEMOS EL ESPACIO en el DOM.
   return (
+    // Este contenedor siempre existe, pero pointer-events-none deja pasar los clics
+    // El ID es crucial porque DiceBox busca "#dice-box-canvas"
     <div 
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-[2px] transition-all duration-300 ${showOverlay ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
-    >
-       <div className="flex items-center justify-center gap-8 md:gap-16">
-          
-          {/* GRUPO 1: DADOS CLAROS (Blanco Hueso) */}
-          {/* CAMBIO CLAVE AQUÍ: Quitamos 'hidden' y ponemos tamaño mínimo */}
-          <div className="min-w-[60px] min-h-[60px]">
-             <ReactDice
-               ref={lightDiceRef}
-               numDice={1}            
-               defaultRoll={6}
-               faceColor="#e5e5e5"    
-               dotColor="#000000"     
-               dieSize={60}           
-               disableIndividual
-               rollTime={2}
-               margin={15}
-             />
-          </div>
-
-          {/* GRUPO 2: DADOS OSCUROS (Negro y Dorado) */}
-          {/* CAMBIO CLAVE AQUÍ: Quitamos 'hidden' y ponemos tamaño mínimo */}
-          <div className="min-w-[60px] min-h-[60px]">
-             <ReactDice
-               ref={darkDiceRef}
-               numDice={1}
-               defaultRoll={1}
-               faceColor="#0f0f0f"    
-               dotColor="#fbbf24"     
-               dieSize={60}
-               disableIndividual
-               rollTime={2}
-               margin={15}
-             />
-          </div>
-
-       </div>
-    </div>
+      id="dice-box-canvas"
+      className="fixed inset-0 z-[100] pointer-events-none w-full h-full"
+    ></div>
   );
 };
 

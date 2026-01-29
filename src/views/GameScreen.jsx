@@ -206,7 +206,7 @@ const GameScreen = () => {
       {/* 7. CAPA DE DADOS 3D (GLOBAL) */}
       <DiceLayer3D messages={messages} />
 
-    </div>
+    </div> // Cierre del div principal
   );
 };
 
