@@ -12,7 +12,7 @@ function App() {
         <Route path="/" element={<LandingScreen />} />
         
         {/* Ruta del juego (ej: /game/sala123) */}
-        <Route path="/game/:roomId" element={<GameScreen />} />
+        <Route path="/room/:roomId" element={<GameScreen />} />
       </Routes>
     </BrowserRouter>
   );

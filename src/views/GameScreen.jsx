@@ -7,6 +7,7 @@ import CharacterSheet from '../components/game/CharacterSheet';
 import VisualBoard from '../components/game/VisualBoard';
 import RulesHelp from '../components/game/RulesHelp';
 import DiceLayer3D from '../components/game/DiceLayer3D'; 
+import LobbyScreen from './LobbyScreen';
 
 // Iconos
 import { 
@@ -37,6 +38,23 @@ const GameScreen = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // --- NUEVO: BLOQUEO DE CARGA ---
+  if (!roomData) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-amber-500">Cargando...</div>;
+
+  // --- NUEVO: EL PORTERO (LOBBY) ---
+  const userName = user?.name || user?.displayName;
+  
+  // ¿Soy el GM? (Comprobamos ID nuevo o nombre antiguo)
+  const isGM = (user && roomData.gmId === user.uid) || (user && roomData.host === userName);
+  
+  // ¿Soy Jugador? (¿Estoy en la lista?)
+  const isPlayer = user && roomData.players && roomData.players.includes(userName);
+
+  // Si no soy nadie conocido, me manda al Lobby
+  if (!isGM && !isPlayer) {
+    return <LobbyScreen roomId={roomId} roomData={roomData} />;
+  }
 
   // --- DADO ARTESANAL (SVG) PARA EL CHAT ---
   const D6 = ({ value, isDark }) => {
@@ -150,7 +168,8 @@ const GameScreen = () => {
   }
 
   if (!roomData) return <div className="flex h-screen items-center justify-center text-trophy-gold">Cargando...</div>;
-
+  
+  
   return (
     <div className="flex h-screen w-full bg-trophy-dark overflow-hidden text-sm relative">
       

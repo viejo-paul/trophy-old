@@ -1,130 +1,214 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useGame } from '../context/GameContext';
-import { createRoom } from '../services/roomService'; // <--- Importamos el servicio
+import { createIncursion, checkRoomExists, getHistory } from '../services/roomService';
+import { Scroll, Sword, Users, History, AlertCircle } from 'lucide-react';
 
 const LandingScreen = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { user, login, setGameMode } = useGame();
-
-  const [inputName, setInputName] = useState(user?.name || '');
-  const [roomId, setRoomId] = useState('');
-  const [selectedMode, setSelectedMode] = useState('gold'); // Por defecto Gold
+  
+  // ESTADO: Control de pestañas y formulario
+  const [activeTab, setActiveTab] = useState('create'); // 'create' o 'join'
+  const [gmName, setGmName] = useState('');
+  const [adventureTitle, setAdventureTitle] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  
+  // ESTADO: Visual y Feedback
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [history, setHistory] = useState([]);
 
-  // CREAR PARTIDA
-  const handleCreateGame = async () => {
-    if (!inputName.trim()) return alert("¡Necesitas un nombre para entrar!");
+  // EFECTO: Cargar historial al entrar
+  useEffect(() => {
+    setHistory(getHistory());
+  }, []);
+
+  // FUNCIÓN 1: CREAR NUEVA INCURSIÓN
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    // Validación básica
+    if (!gmName.trim() || !adventureTitle.trim()) {
+      setError('El Guardián necesita nombre y la incursión un título.');
+      return;
+    }
     
     setIsLoading(true);
-    login(inputName); // Guardar usuario localmente
-    setGameMode(selectedMode); // Guardar modo en contexto
+    setError('');
 
-    // Generar ID y crear en DB
-    const newRoomId = Math.random().toString(36).substring(2, 9); // ID más limpio
-    
-    // Llamamos a nuestro "Camarero"
-    const result = await createRoom(newRoomId, inputName, selectedMode);
-    
-    if (result.success) {
-      navigate(`/game/${newRoomId}`);
-    } else {
-      alert("Hubo un error al crear la sala. Revisa tu conexión.");
+    try {
+      // ID temporal del usuario (luego usaremos Auth real)
+      const tempUserId = 'gm_' + Date.now();
+      
+      // Llamamos a la nueva función de roomService
+      const newRoomId = await createIncursion(adventureTitle, gmName, tempUserId);
+      
+      // Nos vamos a la sala creada
+      navigate(`/room/${newRoomId}`);
+    } catch (err) {
+      console.error(err);
+      setError('Error invocando la sala. Inténtalo de nuevo.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
-  // UNIRSE A PARTIDA
-  const handleJoinGame = () => {
-    if (!inputName.trim() || !roomId.trim()) return alert("Nombre y Sala obligatorios");
-    login(inputName);
-    navigate(`/game/${roomId}`);
+  // FUNCIÓN 2: UNIRSE A UNA EXISTENTE
+  const handleJoin = async (e) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Verificamos si la sala existe realmente
+      const exists = await checkRoomExists(joinCode);
+      if (exists) {
+        navigate(`/room/${joinCode}`);
+      } else {
+        setError('Esa incursión no existe o ha desaparecido.');
+      }
+    } catch (err) {
+      setError('Error al buscar la sala.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-trophy-dark text-trophy-text p-4 font-sans">
-      <h1 className="text-5xl md:text-7xl font-serif text-trophy-gold mb-2 text-center drop-shadow-md">
-        {t('app.title')}
-      </h1>
-      <p className="text-lg text-trophy-sub mb-10 italic opacity-80">
-        {t('app.subtitle')}
-      </p>
+    <div className="min-h-screen bg-slate-950 text-amber-50 flex flex-col items-center justify-center p-4 font-sans selection:bg-amber-900 selection:text-white">
+      
+      {/* CABECERA: Logo y Subtítulo */}
+      <header className="mb-8 text-center animate-fade-in-down">
+        <h1 className="text-5xl md:text-6xl font-bold text-amber-600 tracking-wider mb-2 drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)] font-serif">
+          Trophy (g)Old
+        </h1>
+        <p className="text-slate-500 italic tracking-widest text-sm uppercase">
+          Donde el oro reclama su precio
+        </p>
+      </header>
 
-      <div className="bg-trophy-panel p-8 rounded-xl shadow-2xl border border-gray-800 w-full max-w-md relative overflow-hidden">
-        {/* Decoración de fondo sutil */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-trophy-gold to-transparent opacity-50"></div>
-
-        {/* NOMBRE USUARIO */}
-        <div className="mb-6">
-          <label className="block text-xs font-bold mb-2 text-trophy-gold uppercase tracking-widest">
-            {t('landing.placeholder_user')}
-          </label>
-          <input
-            type="text"
-            className="w-full bg-black/50 border border-gray-700 rounded p-3 text-white focus:border-trophy-gold focus:outline-none transition-all"
-            placeholder="Nombre de tu aventurero..."
-            value={inputName}
-            onChange={(e) => setInputName(e.target.value)}
-          />
-        </div>
-
-        {/* SELECTOR DE MODO (Solo visible al crear) */}
-        <div className="mb-6 grid grid-cols-2 gap-4">
+      {/* TARJETA PRINCIPAL: El Tablón */}
+      <main className="w-full max-w-md bg-slate-900 rounded-xl shadow-2xl border border-slate-800 overflow-hidden relative">
+        
+        {/* PESTAÑAS SUPERIORES */}
+        <div className="flex border-b border-slate-800 bg-slate-900/50">
           <button
-            onClick={() => setSelectedMode('gold')}
-            className={`p-3 rounded border transition-all ${
-              selectedMode === 'gold' 
-                ? 'bg-trophy-gold/20 border-trophy-gold text-trophy-gold' 
-                : 'bg-black/30 border-gray-700 text-gray-500 hover:border-gray-500'
-            }`}
+            onClick={() => setActiveTab('create')}
+            className={`flex-1 py-4 text-xs font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2
+              ${activeTab === 'create' 
+                ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' 
+                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800/50'
+              }`}
           >
-            <span className="block font-serif font-bold text-lg">GOLD</span>
-            <span className="text-xs">Aventura y Tesoro</span>
+            <Scroll size={16} />
+            Nueva incursión
           </button>
           <button
-            onClick={() => setSelectedMode('dark')}
-            className={`p-3 rounded border transition-all ${
-              selectedMode === 'dark' 
-                ? 'bg-trophy-red/20 border-trophy-red text-trophy-red' 
-                : 'bg-black/30 border-gray-700 text-gray-500 hover:border-gray-500'
-            }`}
+            onClick={() => setActiveTab('join')}
+            className={`flex-1 py-4 text-xs font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2
+              ${activeTab === 'join' 
+                ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' 
+                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800/50'
+              }`}
           >
-            <span className="block font-serif font-bold text-lg">DARK</span>
-            <span className="text-xs">Horror y Ruina</span>
+            <Users size={16} />
+            Unirse
           </button>
         </div>
 
-        {/* BOTÓN CREAR */}
-        <button 
-          onClick={handleCreateGame}
-          disabled={isLoading}
-          className="w-full py-4 bg-trophy-red hover:bg-red-800 disabled:opacity-50 text-white font-serif font-bold text-xl rounded shadow-lg transition-all mb-6 flex justify-center items-center gap-2"
-        >
-          {isLoading ? 'Creando...' : t('landing.new_game')}
-        </button>
+        {/* CONTENIDO DEL FORMULARIO */}
+        <div className="p-8">
+          {/* Mensajes de Error */}
+          {error && (
+            <div className="mb-6 p-3 bg-red-950/40 border border-red-900/50 text-red-300 text-xs rounded flex items-center gap-2">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
 
-        {/* SECCIÓN UNIRSE */}
-        <div className="border-t border-gray-700 pt-6">
-          <p className="text-xs text-center text-gray-500 mb-3 uppercase tracking-wider">O únete a una existente</p>
-          <div className="flex gap-2">
-            <input 
-              type="text"
-              placeholder="Código de Sala"
-              className="flex-1 bg-black/50 border border-gray-700 rounded p-3 text-sm focus:border-trophy-gold focus:outline-none"
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-            />
-            <button 
-              onClick={handleJoinGame}
-              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded transition-colors"
-            >
-              Entrar
-            </button>
-          </div>
+          {/* FORMULARIO: CREAR */}
+          {activeTab === 'create' ? (
+            <form onSubmit={handleCreate} className="space-y-5 animate-fade-in">
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Guardián</label>
+                <input
+                  type="text"
+                  value={gmName}
+                  onChange={(e) => setGmName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:border-amber-600 focus:outline-none placeholder:text-slate-700"
+                  placeholder="Tu Nombre"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Incursión</label>
+                <input
+                  type="text"
+                  value={adventureTitle}
+                  onChange={(e) => setAdventureTitle(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:border-amber-600 focus:outline-none placeholder:text-slate-700"
+                  placeholder="Título de la Aventura"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold py-3.5 rounded shadow-lg transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+              >
+                {isLoading ? 'Invocando...' : <><Sword size={18} /> Comenzar la exploración</>}
+              </button>
+            </form>
+          ) : (
+            /* FORMULARIO: UNIRSE */
+            <form onSubmit={handleJoin} className="space-y-5 animate-fade-in">
+              <div className="space-y-1">
+                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Código</label>
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-center font-mono text-lg tracking-widest text-amber-500 focus:border-amber-600 focus:outline-none placeholder:text-slate-800"
+                  placeholder="ID-DE-SALA"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3.5 rounded shadow-lg transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+              >
+                {isLoading ? 'Buscando...' : <><Users size={18} /> Unirse a la mesa...</>}
+              </button>
+            </form>
+          )}
         </div>
-      </div>
+      </main>
+
+      {/* HISTORIAL RECIENTE (Abajo) */}
+      {history.length > 0 && (
+        <section className="mt-10 w-full max-w-md animate-fade-in-up">
+          <h3 className="text-[10px] uppercase tracking-[0.2em] text-slate-600 mb-4 text-center flex items-center justify-center gap-2">
+            <History size={12} />
+            Incursiones Recientes
+          </h3>
+          <ul className="space-y-2">
+            {history.map((game) => (
+              <li key={game.id}>
+                <button
+                  onClick={() => navigate(`/room/${game.id}`)}
+                  className="w-full flex items-center justify-between bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-900/50 p-3 rounded transition-all group text-left"
+                >
+                  <span className="text-slate-400 group-hover:text-amber-500 font-medium text-sm transition-colors">
+                    {game.title}
+                  </span>
+                  <span className="text-[10px] text-slate-700 font-mono group-hover:text-slate-500">
+                    {game.id.slice(0, 6)}...
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 };
