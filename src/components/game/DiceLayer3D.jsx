@@ -37,7 +37,7 @@ const DiceLayer3D = () => {
 
     const handleTrigger = (e) => {
       if (diceBoxRef.current && e.detail) {
-        // e.detail puede ser '1d6' o ['1d6', '1d6']
+        // Ahora e.detail es el array de dados con colores que enviamos
         diceBoxRef.current.roll(e.detail);
       }
     };
@@ -52,8 +52,15 @@ const DiceLayer3D = () => {
   return (
     <div 
       id="dice-box" 
-      className="absolute inset-0 w-full h-full pointer-events-none z-50"
-      style={{ minHeight: '100vh', width: '100vw' }}
+      className="fixed inset-0 w-full h-full pointer-events-none"
+      style={{ 
+        zIndex: 9999, // Super capa por encima de todo
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh'
+      }}
     />
   );
 };

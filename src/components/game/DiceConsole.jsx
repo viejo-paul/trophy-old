@@ -17,7 +17,7 @@ const DiceConsole = ({ roomId }) => {
   const [attackDice, setAttackDice] = useState(1);
   const [enemyEndurance, setEnemyEndurance] = useState(10);
 
-  const playSound = (type) => {
+    const playSound = (type) => {
     const audio = new Audio(type === 'success' ? '/assets/sounds/success.mp3' : '/assets/sounds/dice-hit.mp3');
     audio.volume = 0.5;
     audio.play().catch(e => console.log("Audio play failed", e));
@@ -27,22 +27,37 @@ const DiceConsole = ({ roomId }) => {
     if (isRolling) return; // Evitar doble click
     setIsRolling(true);
 
-    // --- DISPARAR DADOS 3D (Corregido con nombres de variables estándar) ---
-    const notation = [];
-    
-    // Si tus variables se llaman lightCount / darkCount:
-    if (typeof lightCount !== 'undefined' && lightCount > 0) notation.push(`${lightCount}d6`);
-    if (typeof darkCount !== 'undefined' && darkCount > 0) notation.push(`${darkCount}d6`);
+   // --- DISPARAR DADOS 3D CON COLORES ---
+    const diceToRoll = [];
 
-    // Si tus variables se llaman lightDice / darkDice (doble comprobación):
-    if (typeof lightDice !== 'undefined' && lightDice > 0) notation.push(`${lightDice}d6`);
-    if (typeof darkDice !== 'undefined' && darkDice > 0) notation.push(`${darkDice}d6`);
+    // Dados Claros (Blancos/Dorado)
+    // Buscamos si tu variable se llama lightDice o lightCount
+    const lQty = typeof lightDice !== 'undefined' ? lightDice : (typeof lightCount !== 'undefined' ? lightCount : 0);
+    for (let i = 0; i < lQty; i++) {
+      diceToRoll.push({
+        sides: 6,
+        theme: 'default',
+        themeColor: '#ffffff', // Blanco puro
+      });
+    }
+
+    // Dados Oscuros (Negros/Rojos)
+    const dQty = typeof darkDice !== 'undefined' ? darkDice : (typeof darkCount !== 'undefined' ? darkCount : 0);
+    for (let i = 0; i < dQty; i++) {
+      diceToRoll.push({
+        sides: 6,
+        theme: 'default',
+        themeColor: '#1a1a1a', // Negro carbón
+      });
+    }
     
-    if (notation.length > 0) {
+    if (diceToRoll.length > 0) {
       window.dispatchEvent(new CustomEvent('trigger-dice-roll', { 
-        detail: notation 
+        detail: diceToRoll 
       }));
     }
+    //-------------
+
     
     try {
       playSound('roll');
