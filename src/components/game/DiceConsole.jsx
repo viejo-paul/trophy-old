@@ -26,6 +26,23 @@ const DiceConsole = ({ roomId }) => {
   const handleRoll = async () => {
     if (isRolling) return; // Evitar doble click
     setIsRolling(true);
+
+    // --- DISPARAR DADOS 3D (Corregido con nombres de variables estándar) ---
+    const notation = [];
+    
+    // Si tus variables se llaman lightCount / darkCount:
+    if (typeof lightCount !== 'undefined' && lightCount > 0) notation.push(`${lightCount}d6`);
+    if (typeof darkCount !== 'undefined' && darkCount > 0) notation.push(`${darkCount}d6`);
+
+    // Si tus variables se llaman lightDice / darkDice (doble comprobación):
+    if (typeof lightDice !== 'undefined' && lightDice > 0) notation.push(`${lightDice}d6`);
+    if (typeof darkDice !== 'undefined' && darkDice > 0) notation.push(`${darkDice}d6`);
+    
+    if (notation.length > 0) {
+      window.dispatchEvent(new CustomEvent('trigger-dice-roll', { 
+        detail: notation 
+      }));
+    }
     
     try {
       playSound('roll');
