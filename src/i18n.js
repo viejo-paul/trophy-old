@@ -1,21 +1,26 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-
-// Importamos los JSONs que acabamos de crear
-import es from './locales/es/translation.json';
-import en from './locales/en/translation.json';
+import LanguageDetector from 'i18next-browser-languagedetector';
+import Backend from 'i18next-http-backend';
 
 i18n
-  .use(initReactI18next) // Pasamos i18n a React
+  // Carga los archivos desde /public/locales
+  .use(Backend)
+  // Detecta el idioma del navegador
+  .use(LanguageDetector)
+  // Pasa la instancia a react
+  .use(initReactI18next)
   .init({
-    resources: {
-      es: { translation: es },
-      en: { translation: en }
-    },
-    lng: 'es', // Idioma por defecto (puedes cambiarlo a 'en' para probar)
-    fallbackLng: 'en', // Si falla el español, usa inglés
+    fallbackLng: 'es', 
+    debug: true, 
+    
     interpolation: {
-      escapeValue: false // React ya protege contra ataques XSS
+      escapeValue: false, 
+    },
+    
+    // Esta es la parte clave: le dice dónde buscar en la carpeta public
+    backend: {
+      loadPath: '/locales/{{lng}}/translation.json',
     }
   });
 

@@ -1,214 +1,154 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { createIncursion, checkRoomExists, getHistory } from '../services/roomService';
-import { Scroll, Sword, Users, History, AlertCircle } from 'lucide-react';
+import { useGame } from '../context/GameContext'; // Asegúrate de que este archivo existe
+import { createRoom, joinRoom } from '../services/roomService'; 
 
 const LandingScreen = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  
-  // ESTADO: Control de pestañas y formulario
-  const [activeTab, setActiveTab] = useState('create'); // 'create' o 'join'
-  const [gmName, setGmName] = useState('');
-  const [adventureTitle, setAdventureTitle] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  
-  // ESTADO: Visual y Feedback
+  const { login, setGameMode } = useGame(); // Usamos funciones del contexto
+
+  const [inputName, setInputName] = useState('');
+  const [roomId, setRoomId] = useState('');
+  const [selectedMode, setSelectedMode] = useState('gold'); 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [history, setHistory] = useState([]);
 
-  // EFECTO: Cargar historial al entrar
-  useEffect(() => {
-    setHistory(getHistory());
-  }, []);
-
-  // FUNCIÓN 1: CREAR NUEVA INCURSIÓN
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    // Validación básica
-    if (!gmName.trim() || !adventureTitle.trim()) {
-      setError('El Guardián necesita nombre y la incursión un título.');
-      return;
-    }
+  // --- LÓGICA DE CREAR ---
+  const handleCreateGame = async () => {
+    if (!inputName.trim()) return alert(t('landing.placeholder_user') + " requerido");
     
     setIsLoading(true);
-    setError('');
+    
+    // 1. Guardamos el usuario en el estado global
+    login(inputName);
+    setGameMode(selectedMode);
 
-    try {
-      // ID temporal del usuario (luego usaremos Auth real)
-      const tempUserId = 'gm_' + Date.now();
-      
-      // Llamamos a la nueva función de roomService
-      const newRoomId = await createIncursion(adventureTitle, gmName, tempUserId);
-      
-      // Nos vamos a la sala creada
+    // 2. Generamos un ID aleatorio (ej: "x7k2p9")
+    const newRoomId = Math.random().toString(36).substring(2, 8); 
+    
+    // 3. Creamos la sala en Firebase
+    const result = await createRoom(newRoomId, inputName, selectedMode);
+    
+    if (result.success) {
+      // 4. CORRECCIÓN IMPORTANTE: Navegamos a /room/, no /game/
       navigate(`/room/${newRoomId}`);
-    } catch (err) {
-      console.error(err);
-      setError('Error invocando la sala. Inténtalo de nuevo.');
-    } finally {
-      setIsLoading(false);
+    } else {
+      alert("Error: " + result.error);
     }
+    setIsLoading(false);
   };
 
-  // FUNCIÓN 2: UNIRSE A UNA EXISTENTE
-  const handleJoin = async (e) => {
-    e.preventDefault();
-    if (!joinCode.trim()) return;
-
+  // --- LÓGICA DE UNIRSE ---
+  const handleJoinGame = async () => {
+    if (!inputName.trim() || !roomId.trim()) return alert("Nombre y Sala obligatorios");
+    
     setIsLoading(true);
-    setError('');
+    login(inputName);
 
-    try {
-      // Verificamos si la sala existe realmente
-      const exists = await checkRoomExists(joinCode);
-      if (exists) {
-        navigate(`/room/${joinCode}`);
-      } else {
-        setError('Esa incursión no existe o ha desaparecido.');
-      }
-    } catch (err) {
-      setError('Error al buscar la sala.');
-    } finally {
-      setIsLoading(false);
+    // Intentamos unirnos en Firebase primero para ver si existe
+    const result = await joinRoom(roomId, inputName);
+
+    if (result.success) {
+      navigate(`/room/${roomId}`);
+    } else {
+      alert("No se pudo entrar: " + result.error);
     }
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-amber-50 flex flex-col items-center justify-center p-4 font-sans selection:bg-amber-900 selection:text-white">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-trophy-dark text-trophy-text p-4 font-sans">
       
-      {/* CABECERA: Logo y Subtítulo */}
-      <header className="mb-8 text-center animate-fade-in-down">
-        <h1 className="text-5xl md:text-6xl font-bold text-amber-600 tracking-wider mb-2 drop-shadow-[0_2px_10px_rgba(245,158,11,0.2)] font-serif">
-          Trophy (g)Old
-        </h1>
-        <p className="text-slate-500 italic tracking-widest text-sm uppercase">
-          Donde el oro reclama su precio
-        </p>
-      </header>
-
-      {/* TARJETA PRINCIPAL: El Tablón */}
-      <main className="w-full max-w-md bg-slate-900 rounded-xl shadow-2xl border border-slate-800 overflow-hidden relative">
+      {/* TÍTULO */}
+      <h1 className="text-5xl md:text-7xl font-serif text-trophy-gold mb-2 text-center drop-shadow-md tracking-tighter">
+        {t('app_title')} 
+      </h1>
+      
+      {/* CAJA PRINCIPAL */}
+      <div className="bg-trophy-panel p-8 rounded-xl shadow-2xl border border-stone-800 w-full max-w-md relative mt-10">
         
-        {/* PESTAÑAS SUPERIORES */}
-        <div className="flex border-b border-slate-800 bg-slate-900/50">
+        {/* Decoración dorada superior */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-trophy-gold to-transparent opacity-50"></div>
+
+        {/* INPUT NOMBRE */}
+        <div className="mb-6">
+          <label className="block text-xs font-bold mb-2 text-trophy-gold uppercase tracking-widest">
+            Tu Nombre
+          </label>
+          <input
+            type="text"
+            className="w-full bg-black/40 border border-stone-700 rounded p-3 text-white focus:border-trophy-gold focus:outline-none transition-all"
+            placeholder="Ej: Akaleh, Baso..."
+            value={inputName}
+            onChange={(e) => setInputName(e.target.value)}
+          />
+        </div>
+
+        {/* SELECTOR DE MODO */}
+        <div className="mb-6 grid grid-cols-2 gap-4">
           <button
-            onClick={() => setActiveTab('create')}
-            className={`flex-1 py-4 text-xs font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2
-              ${activeTab === 'create' 
-                ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' 
-                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800/50'
-              }`}
+            onClick={() => setSelectedMode('gold')}
+            className={`p-4 rounded border transition-all flex flex-col items-center ${
+              selectedMode === 'gold' 
+                ? 'bg-trophy-gold/10 border-trophy-gold text-trophy-gold shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
+                : 'bg-black/20 border-stone-700 text-stone-500 hover:border-stone-500'
+            }`}
           >
-            <Scroll size={16} />
-            Nueva incursión
+            <span className="font-serif font-bold text-xl">GOLD</span>
+            <span className="text-[10px] uppercase tracking-wide opacity-80">Aventura</span>
           </button>
+          
           <button
-            onClick={() => setActiveTab('join')}
-            className={`flex-1 py-4 text-xs font-bold tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2
-              ${activeTab === 'join' 
-                ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' 
-                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-800/50'
-              }`}
+            onClick={() => setSelectedMode('dark')}
+            className={`p-4 rounded border transition-all flex flex-col items-center ${
+              selectedMode === 'dark' 
+                ? 'bg-trophy-red/20 border-trophy-red text-trophy-red shadow-[0_0_15px_rgba(127,29,29,0.4)]' 
+                : 'bg-black/20 border-stone-700 text-stone-500 hover:border-stone-500'
+            }`}
           >
-            <Users size={16} />
-            Unirse
+            <span className="font-serif font-bold text-xl">DARK</span>
+            <span className="text-[10px] uppercase tracking-wide opacity-80">Horror</span>
           </button>
         </div>
 
-        {/* CONTENIDO DEL FORMULARIO */}
-        <div className="p-8">
-          {/* Mensajes de Error */}
-          {error && (
-            <div className="mb-6 p-3 bg-red-950/40 border border-red-900/50 text-red-300 text-xs rounded flex items-center gap-2">
-              <AlertCircle size={16} />
-              {error}
-            </div>
-          )}
+        {/* BOTÓN CREAR */}
+        <button 
+          onClick={handleCreateGame}
+          disabled={isLoading}
+          className="w-full py-3 bg-gradient-to-r from-stone-700 to-stone-600 hover:from-trophy-gold hover:to-amber-600 hover:text-black text-white font-serif font-bold text-lg rounded shadow-lg transition-all mb-8 border border-stone-600 hover:border-trophy-gold"
+        >
+          {isLoading ? 'Abriendo portón...' : t('menu.create_room')}
+        </button>
 
-          {/* FORMULARIO: CREAR */}
-          {activeTab === 'create' ? (
-            <form onSubmit={handleCreate} className="space-y-5 animate-fade-in">
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Guardián</label>
-                <input
-                  type="text"
-                  value={gmName}
-                  onChange={(e) => setGmName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:border-amber-600 focus:outline-none placeholder:text-slate-700"
-                  placeholder="Tu Nombre"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Incursión</label>
-                <input
-                  type="text"
-                  value={adventureTitle}
-                  onChange={(e) => setAdventureTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-slate-200 focus:border-amber-600 focus:outline-none placeholder:text-slate-700"
-                  placeholder="Título de la Aventura"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold py-3.5 rounded shadow-lg transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
-              >
-                {isLoading ? 'Invocando...' : <><Sword size={18} /> Comenzar la exploración</>}
-              </button>
-            </form>
-          ) : (
-            /* FORMULARIO: UNIRSE */
-            <form onSubmit={handleJoin} className="space-y-5 animate-fade-in">
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wider text-slate-500 font-bold">Código</label>
-                <input
-                  type="text"
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded p-3 text-center font-mono text-lg tracking-widest text-amber-500 focus:border-amber-600 focus:outline-none placeholder:text-slate-800"
-                  placeholder="ID-DE-SALA"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3.5 rounded shadow-lg transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
-              >
-                {isLoading ? 'Buscando...' : <><Users size={18} /> Unirse a la mesa...</>}
-              </button>
-            </form>
-          )}
+        {/* SECCIÓN UNIRSE */}
+        <div className="border-t border-stone-700 pt-6">
+          <p className="text-xs text-center text-stone-500 mb-3 uppercase tracking-wider">
+            {t('menu.join_room')}
+          </p>
+          <div className="flex gap-2">
+            <input 
+              type="text"
+              placeholder="Código..."
+              className="flex-1 bg-black/40 border border-stone-700 rounded p-3 text-sm focus:border-trophy-gold focus:outline-none text-center tracking-widest uppercase"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+            />
+            <button 
+              onClick={handleJoinGame}
+              disabled={isLoading}
+              className="px-6 py-3 bg-stone-800 hover:bg-stone-700 border border-stone-600 text-stone-300 font-bold rounded transition-colors text-sm uppercase"
+            >
+              Entrar
+            </button>
+          </div>
         </div>
-      </main>
-
-      {/* HISTORIAL RECIENTE (Abajo) */}
-      {history.length > 0 && (
-        <section className="mt-10 w-full max-w-md animate-fade-in-up">
-          <h3 className="text-[10px] uppercase tracking-[0.2em] text-slate-600 mb-4 text-center flex items-center justify-center gap-2">
-            <History size={12} />
-            Incursiones Recientes
-          </h3>
-          <ul className="space-y-2">
-            {history.map((game) => (
-              <li key={game.id}>
-                <button
-                  onClick={() => navigate(`/room/${game.id}`)}
-                  className="w-full flex items-center justify-between bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-900/50 p-3 rounded transition-all group text-left"
-                >
-                  <span className="text-slate-400 group-hover:text-amber-500 font-medium text-sm transition-colors">
-                    {game.title}
-                  </span>
-                  <span className="text-[10px] text-slate-700 font-mono group-hover:text-slate-500">
-                    {game.id.slice(0, 6)}...
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      </div>
+      
+      {/* Footer decorativo */}
+      <div className="mt-8 text-stone-600 text-xs font-serif italic">
+        "El bosque exige un sacrificio..."
+      </div>
     </div>
   );
 };

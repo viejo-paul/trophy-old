@@ -1,9 +1,12 @@
 {
-  "app_title": "Trophy Gold/Dark VTT",
+  "app_title": "Trophy (g)Old",
   "menu": {
     "play": "Jugar",
     "create_room": "Crear Sala",
     "join_room": "Unirse a Sala"
+  },
+  "landing": {
+    "placeholder_user": "Nombre de usuario"
   },
   "loading": "Cargando..."
 }

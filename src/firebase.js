@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 
 // Vite carga las variables de entorno automáticamente si empiezan por VITE_
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_API_KEY,
-  authDomain: import.meta.env.VITE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_APP_ID
+  apiKey: "AIzaSyC-7qaYG-fB-xkaVS5_4g8x9Whpu84TSow",
+  authDomain: "trophy-gold-v2.firebaseapp.com",
+  projectId: "trophy-gold-v2",
+  storageBucket: "trophy-gold-v2.firebasestorage.app",
+  messagingSenderId: "369283032350",
+  appId: "1:369283032350:web:2d06f470a162a3e9f3150f"
 };
 
 // Inicializar Firebase
