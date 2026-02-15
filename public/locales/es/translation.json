@@ -1,0 +1,9 @@
+{
+  "app_title": "Trophy Gold/Dark VTT",
+  "menu": {
+    "play": "Jugar",
+    "create_room": "Crear Sala",
+    "join_room": "Unirse a Sala"
+  },
+  "loading": "Cargando..."
+}
